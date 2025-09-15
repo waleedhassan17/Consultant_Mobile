@@ -1,5 +1,6 @@
 import { signInPayload, AuthResponse, userInfo, UserType } from "../../models/auth";
 import { notificationHandler } from "../../notifications/notificationHandler";
+import { signInResponseSerializer, validateSignInData, signInPayloadSerializer } from "../../serializers/signin";
 
 // Dummy API function to replace the imported API
 const dummyAPI = {
@@ -7,110 +8,90 @@ const dummyAPI = {
     // Mock network delay
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Simulate API response structure
+    // Simulate API response structure that matches what serializer expects
     return {
       success: true,
-      data: data,
-      message: "API call successful"
+      data: {
+        user: {
+          uid: data.email === "user@test.com" ? "1" : 
+               data.email === "therapist@test.com" ? "2" : "3",
+          email: data.email,
+          displayName: data.email === "user@test.com" ? "Test User" : 
+                      data.email === "therapist@test.com" ? "Dr. Smith" : "Admin User",
+          nickname: data.email === "user@test.com" ? "Test User" : 
+                   data.email === "therapist@test.com" ? "Dr. Smith" : "Admin User",
+          phoneNumber: "+1234567890",
+          photoURL: `https://example.com/avatar${data.email === "user@test.com" ? "1" : "2"}.jpg`,
+          birthYear: "1990",
+          gender: data.email === "therapist@test.com" ? "female" : "male",
+          userType: data.userType,
+          createdAt: "2024-01-01T00:00:00.000Z",
+          updatedAt: "2024-01-01T00:00:00.000Z",
+          emailVerified: true,
+          isVerified: true
+        },
+        accessToken: `mock_jwt_token_${Date.now()}`,
+        refreshToken: `mock_refresh_token_${Date.now()}`
+      },
+      message: "Login successful"
     };
   }
 };
 
-// Hardcoded users for testing - matching your userInfo interface
-const MOCK_USERS: userInfo[] = [
-  {
-    id: "1",
-    nickname: "Test User",
-    email: "user@test.com",
-    phone: "+1234567890",
-    birthYear: "1990",
-    gender: "male",
-    userType: UserType.visitor,
-    avatar: "https://example.com/avatar1.jpg",
-    createdAt: "2024-01-01T00:00:00.000Z",
-    updatedAt: "2024-01-01T00:00:00.000Z"
-  },
-  {
-    id: "2",
-    nickname: "Dr. Smith",
-    email: "therapist@test.com",
-    phone: "+1234567891",
-    birthYear: "1985",
-    gender: "female",
-    userType: UserType.therapist,
-    avatar: "https://example.com/avatar2.jpg",
-    createdAt: "2024-01-01T00:00:00.000Z",
-    updatedAt: "2024-01-01T00:00:00.000Z"
-  },
-  {
-    id: "3",
-    nickname: "Admin User",
-    email: "admin@test.com",
-    phone: "+1234567892",
-    birthYear: "1988",
-    gender: "other",
-    userType: UserType.visitor, // Since admin is not in your UserType enum
-    avatar: "https://example.com/avatar3.jpg",
-    createdAt: "2024-01-01T00:00:00.000Z",
-    updatedAt: "2024-01-01T00:00:00.000Z"
-  }
-];
-
-// Store passwords separately for testing (in real app, these would be hashed)
+// Store passwords separately for testing
 const MOCK_PASSWORDS: { [key: string]: string } = {
   "user@test.com": "123456",
   "therapist@test.com": "123456",
   "admin@test.com": "admin123"
 };
 
-// Mock delay to simulate network request
-const mockDelay = () => new Promise(resolve => setTimeout(resolve, 1500));
-
 export const authLogin = async (signInInfo: signInPayload): Promise<AuthResponse> => {
   try {
-    // Using dummy API instead of imported API
-    // const response = await dummyAPI.POST({
-    //   URL: "login",
-    //   headers: {},
-    //   data: signInInfo,
-    // });
+    // Step 1: Validate input data using serializer
+    const validation = validateSignInData(signInInfo);
+    if (!validation.isValid) {
+      throw new Error(validation.errors.join(', '));
+    }
 
-    // Mock network delay
-    await mockDelay();
-
-    // Find user by email
-    const user = MOCK_USERS.find(u => u.email === signInInfo.email);
-
-    if (!user) {
+    // Step 2: Serialize the payload (clean and format data)
+    const serializedPayload = signInPayloadSerializer(signInInfo);
+    
+    // Step 3: Check credentials against mock data
+    const storedPassword = MOCK_PASSWORDS[serializedPayload.email];
+    if (!storedPassword || storedPassword !== serializedPayload.password) {
       throw new Error("Invalid credentials");
     }
 
-    // Check password
-    const storedPassword = MOCK_PASSWORDS[signInInfo.email];
-    if (!storedPassword || storedPassword !== signInInfo.password) {
-      throw new Error("Invalid credentials");
+    // Step 4: Call dummy API with serialized data
+    const response = await dummyAPI.POST({
+      URL: "login",
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      data: serializedPayload,
+    });
+
+    if (!response.success) {
+      throw new Error("API call failed");
     }
 
-    // Check if user type matches
-    if (user.userType !== signInInfo.userType) {
-      throw new Error("Invalid user type for this account");
-    }
+    // Step 5: Use serializer to transform API response to match our userInfo model
+    const serializedUser = signInResponseSerializer(response);
 
-    // Create successful response matching AuthResponse interface
+    // Step 6: Create AuthResponse matching our model
     const authResponse: AuthResponse = {
-      user: user,
-      accessToken: `mock_jwt_token_${user.id}_${Date.now()}`,
-      refreshToken: `mock_refresh_token_${user.id}_${Date.now()}`,
-      message: "Login successful"
+      user: serializedUser,
+      accessToken: response.data.accessToken,
+      refreshToken: response.data.refreshToken,
+      message: response.message
     };
 
-    console.log("Login successful:", authResponse);
+    console.log("Login successful with proper architecture:", authResponse);
     return authResponse;
 
   } catch (e: any) {
     console.error("Login error:", e);
     notificationHandler({ statusCode: "credentials_invalid" });
-    const newError = new Error(e.message || "Invalid email or password");
-    throw newError;
+    throw new Error(e.message || "Invalid email or password");
   }
 };

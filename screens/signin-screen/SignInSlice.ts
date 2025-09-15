@@ -64,10 +64,20 @@ export const signInSlice = createAppSlice({
           userType
         };
 
-        // Call authLogin with the correct parameter structure
+        console.log('Submitting sign-in with payload:', {
+          email: payload.email,
+          userType: payload.userType
+        });
+
+        // Network layer will handle API call → Serializer → Model transformation
         const result = await authLogin(payload);
 
-        // Return the response directly since authLogin now returns AuthResponse format
+        console.log('Slice received serialized data from network layer:', {
+          userType: result.user.userType,
+          userId: result.user.id,
+          hasToken: !!result.accessToken
+        });
+
         return result;
       },
       {
@@ -76,13 +86,16 @@ export const signInSlice = createAppSlice({
           state.error = "";
         },
         fulfilled: (state, action) => {
-          // Simply update the state - notification handling is now done in App.tsx
           state.status = "idle";
           state.user = action.payload.user;
           state.accessToken = action.payload.accessToken || "";
           state.error = "";
           
-          console.log('Sign-in successful, state updated for user:', action.payload.user?.userType);
+          console.log('Sign-in successful, state updated for user:', {
+            userType: action.payload.user?.userType,
+            userId: action.payload.user?.id,
+            hasToken: !!state.accessToken
+          });
         },
         rejected: (state, action) => {
           state.status = "failed";
@@ -102,7 +115,10 @@ export const signInSlice = createAppSlice({
     selectError: (state) => state.error,
     selectAccessToken: (state) => state.accessToken,
     selectUser: (state) => state.user,
-    selectIsAuthenticated: (state) => !!state.user,
+    selectIsAuthenticated: (state) => !!state.user && !!state.accessToken,
+    selectUserType: (state) => state.user?.userType,
+    selectUserId: (state) => state.user?.id,
+    selectUserNickname: (state) => state.user?.nickname,
   },
 });
 
@@ -127,4 +143,7 @@ export const {
   selectAccessToken,
   selectUser,
   selectIsAuthenticated,
+  selectUserType,
+  selectUserId,
+  selectUserNickname,
 } = signInSlice.selectors;

@@ -6,8 +6,7 @@ import {
   signUpSliceState, 
   signUpPayload, 
   UserTypeValue, 
-  GenderValue,
-  userInfo 
+  GenderValue 
 } from "../../models/auth";
 
 const initialState: signUpSliceState = {
@@ -27,6 +26,7 @@ const initialState: signUpSliceState = {
   accessToken: "",
   user: null,
 };
+
 
 export const signUpSlice = createAppSlice({
   name: "signUp",
@@ -87,6 +87,7 @@ export const signUpSlice = createAppSlice({
         userType: UserTypeValue;
         agreeToPrivacy: boolean;
       }) => {
+        // Create payload in slice - simple data preparation
         const payload: signUpPayload = {
           nickname: formData.nickname.trim(),
           email: formData.email.trim(),
@@ -99,7 +100,7 @@ export const signUpSlice = createAppSlice({
           agreeToPrivacy: formData.agreeToPrivacy,
         };
         
-        // Call registerUser with the correct parameter structure
+        // Network layer handles API call + serialization
         const result = await registerUser(payload);
         return result;
       },
@@ -109,7 +110,6 @@ export const signUpSlice = createAppSlice({
           state.error = "";
         },
         fulfilled: (state, action) => {
-          // Simply update the state - notification handling is now done in App.tsx
           state.status = "idle";
           state.user = action.payload.user;
           state.accessToken = action.payload.accessToken || "";
