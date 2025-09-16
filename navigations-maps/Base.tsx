@@ -35,13 +35,6 @@ export const BaseRoutes: IRoute[] = [
       headerShown: true,
     },
   },
-   {
-    component: LogoutScreen,
-    title: BaseRouteNames.Logout,
-    options: {
-      headerShown: true,
-    },
-  },
   {
     component: DrawerNavigator, // Changed from HomeScreen to DrawerNavigator
     title: BaseRouteNames.Home,

@@ -8,7 +8,7 @@ export const DrawerRouteNames = {
   Home: "Home",
   Profile: "Profile",
   Settings: "Settings",
-  LogoutScreen: "Logout", // Make sure this matches the route name in your CustomDrawer menuItems
+  LogoutScreen: "LogoutScreen", // Make sure this matches the route name in your CustomDrawer menuItems
 } as const;
 
 export type DrawerRouteNamesType = typeof DrawerRouteNames[keyof typeof DrawerRouteNames];
