@@ -13,11 +13,18 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector, useAppDispatch } from '../../hooks/useReduxHooks';
 import { 
-  selectSearchQuery, 
-  setSearchQuery, 
-  selectTherapists,
-  toggleFilter 
+setSearchQuery, 
+toggleFilter 
 } from './homeScreenSlice';
+import { selectSearchQuery, selectTherapists } from './homeScreenSlice';
+
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { BaseRouteNames } from "../../navigations-maps/Base";
+
+type NavigationProp = NativeStackNavigationProp<any>; // Or use a proper param list if you have one
+
+
 
 export interface Therapist {
   id: number;
@@ -37,9 +44,9 @@ export default function HomeScreen(): JSX.Element {
   const dispatch = useAppDispatch();
   const searchQuery = useAppSelector(selectSearchQuery);
   const therapists = useAppSelector(selectTherapists);
-  const state = useAppSelector((state) => state);
-  console.log('Redux State:', state);
-  console.log('Redux State:', useAppSelector((state) => state));
+  const navigation = useNavigation<NavigationProp>();
+
+  
 
   const handleSearch = (text: string): void => {
     dispatch(setSearchQuery(text));
@@ -71,10 +78,27 @@ export default function HomeScreen(): JSX.Element {
             <View style={styles.starsContainer}>
               {renderStars(therapist.rating)}
             </View>
-            <Text style={styles.sessionCount}>
-              <Ionicons name="calendar" size={16} color="#2196F3" /> 
-              {therapist.sessions}+ Sessions
-            </Text>
+            <View style={{ flexDirection: "column", alignItems: "flex-start" }}>
+  {/* Sessions */}
+              <Text style={styles.sessionCount}>
+                <Ionicons name="calendar" size={16} color="#2196F3" style={styles.topTherapistIcon} /> 
+                {therapist.sessions}+ Sessions
+              </Text>
+
+              {/* Top Therapist */}
+              {therapist.id === 2 && (  // Only show for therapist with id 1}
+              <View style={styles.topTherapistContainer}>
+                <Image 
+                  source={require('../../assets/top.png')} 
+                  style={styles.topTherapistIcon} 
+                />
+                <Text style={styles.toptherapist}>Top therapist</Text>
+              </View>)}
+            </View>
+
+
+             
+            
           </View>
           
           <Text style={styles.reviewText}>
@@ -109,9 +133,12 @@ export default function HomeScreen(): JSX.Element {
       </View>
       
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.viewProfileButton}>
-          <Text style={styles.viewProfileText}>View Profile</Text>
-        </TouchableOpacity>
+      <TouchableOpacity 
+        style={styles.viewProfileButton}
+        onPress={() => navigation.navigate(BaseRouteNames.TherapistProfile)}
+      >
+        <Text style={styles.viewProfileText}>View Profile</Text>
+      </TouchableOpacity>
         <TouchableOpacity style={styles.bookNowButton}>
           <Text style={styles.bookNowText}>Book Now</Text>
         </TouchableOpacity>
@@ -230,6 +257,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
+  topTherapistContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4, // adds some spacing below sessions
+    gap: 4,       // space between icon and text
+  },
+  topTherapistIcon: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+
+  },
+  toptherapist: {
+    color: '#fcb045',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  
   appName: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -386,10 +431,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   therapistName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 12,
+    fontWeight: 500,
+    color: '#4d4d4f',
     marginBottom: 4,
+    fontFamily: 'Montserrat',
   },
   therapistSpecialty: {
     fontSize: 14,
@@ -410,6 +456,7 @@ const styles = StyleSheet.create({
     color: '#666',
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4, // space between icon and text
   },
   reviewText: {
     fontSize: 12,

@@ -11,7 +11,7 @@ export const store = configureStore({
     signIn: signInSlice.reducer,
     signUp: signUpSlice.reducer,
     logout: logoutSlice.reducer,
-    homeScreen: homeScreenReducer
+    homeScreen: homeScreenReducer,
   },
 });
 

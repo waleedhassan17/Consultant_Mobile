@@ -1,8 +1,8 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { ImageSourcePropType } from 'react-native';
-// import profileImage from "../../assets/profile.jpg";
+// homeScreenSlice.ts
+import type { PayloadAction } from "@reduxjs/toolkit";
+import { createAppSlice } from "../../store/createAppSlice";
+import { ImageSourcePropType } from "react-native";
 
-// Types
 export interface Therapist {
   id: number;
   name: string;
@@ -18,96 +18,113 @@ export interface Therapist {
 }
 
 export interface HomeScreenState {
+  message: string;
   searchQuery: string;
   filterActive: boolean;
   therapists: Therapist[];
 }
 
-export interface RootState {
-  homeScreen: HomeScreenState;
-}
-
 const initialState: HomeScreenState = {
-  searchQuery: '',
+  message: "Hello Pakistan",
+  searchQuery: "",
   filterActive: false,
   therapists: [
     {
       id: 1,
-      name: 'Ass. prof. Abdur- Rehman Gujjar',
-      specialty: 'Psychiatrist',
+      name: "Ass. prof. Abdur- Rehman Gujjar",
+      specialty: "Psychiatrist",
       rating: 4.95,
       reviewCount: 78,
-      sessions: '500',
-      interests: ['Anxiety Disorders', 'Depression'],
-      nextAppointment: 'Tuesday, Sep.16 at 11:30 PM',
-      price60: '129 USD',
-      price30: '65 USD',
-      image: require('../../assets/profile.jpg'),
+      sessions: "500",
+      interests: ["Anxiety Disorders", "Depression"],
+      nextAppointment: "Tuesday, Sep.16 at 11:30 PM",
+      price60: "129 USD",
+      price30: "65 USD",
+      image: require("../../assets/profile.jpg"),
     },
-    // You can add more therapists here
+    {
+      id: 2,
+      name: "Ass. prof. Haris Asif",
+      specialty: "Psychiatrist",
+      rating: 4.9,
+      reviewCount: 70,
+      sessions: "500",
+      interests: ["Anxiety Disorders", "Depression"],
+      nextAppointment: "Tuesday, Sep.19 at 9:30 PM",
+      price60: "109 USD",
+      price30: "50 USD",
+      image: require("../../assets/profile2.jpg"),
+    },
+    // Add more therapists here if needed
   ],
 };
 
-const homeScreenSlice = createSlice({
-  name: 'homeScreen',
+export const homeScreenSlice = createAppSlice({
+  name: "homeScreen",
   initialState,
-  reducers: {
-    setSearchQuery: (state, action: PayloadAction<string>) => {
+  reducers: (create) => ({
+    setMessage: create.reducer((state, action: PayloadAction<string>) => {
+      state.message = action.payload;
+    }),
+    setSearchQuery: create.reducer((state, action: PayloadAction<string>) => {
       state.searchQuery = action.payload;
-    },
-    toggleFilter: (state) => {
+    }),
+    toggleFilter: create.reducer((state) => {
       state.filterActive = !state.filterActive;
-    },
-    addTherapist: (state, action: PayloadAction<Therapist>) => {
+    }),
+    addTherapist: create.reducer((state, action: PayloadAction<Therapist>) => {
       state.therapists.push(action.payload);
-    },
-    updateTherapist: (
-      state, 
-      action: PayloadAction<{ id: number; updates: Partial<Therapist> }>
-    ) => {
-      const { id, updates } = action.payload;
-      const therapistIndex = state.therapists.findIndex((t) => t.id === id);
-      if (therapistIndex !== -1) {
-        state.therapists[therapistIndex] = { 
-          ...state.therapists[therapistIndex], 
-          ...updates 
-        };
+    }),
+    updateTherapist: create.reducer(
+      (state, action: PayloadAction<{ id: number; updates: Partial<Therapist> }>) => {
+        const { id, updates } = action.payload;
+        const index = state.therapists.findIndex((t) => t.id === id);
+        if (index !== -1) {
+          state.therapists[index] = {
+            ...state.therapists[index],
+            ...updates,
+          };
+        }
       }
+    ),
+  }),
+
+  selectors: {
+    selectMessage: (state) => state.message,
+    selectSearchQuery: (state) => state.searchQuery,
+    selectFilterActive: (state) => state.filterActive,
+    selectAllTherapists: (state) => state.therapists,
+    selectTherapists: (state) => {
+      if (!state.searchQuery) return state.therapists;
+      return state.therapists.filter(
+        (therapist) =>
+          therapist.name.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+          therapist.specialty.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+          therapist.interests.some((interest) =>
+            interest.toLowerCase().includes(state.searchQuery.toLowerCase())
+          )
+      );
     },
+    selectTherapistById: (state) => (id: number) =>
+      state.therapists.find((therapist) => therapist.id === id),
   },
 });
 
-// Selectors
-export const selectSearchQuery = (state: RootState): string => 
-  state.homeScreen.searchQuery;
-
-export const selectFilterActive = (state: RootState): boolean => 
-  state.homeScreen.filterActive;
-
-export const selectTherapists = (state: RootState): Therapist[] => {
-  const { searchQuery, therapists } = state.homeScreen;
-  if (!searchQuery) return therapists;
-  
-  return therapists.filter((therapist) => 
-    therapist.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    therapist.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    therapist.interests.some((interest) => 
-      interest.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  );
-};
-
-export const selectAllTherapists = (state: RootState): Therapist[] => 
-  state.homeScreen.therapists;
-
-export const selectTherapistById = (state: RootState) => (id: number): Therapist | undefined =>
-  state.homeScreen.therapists.find((therapist) => therapist.id === id);
-
-export const { 
-  setSearchQuery, 
-  toggleFilter, 
-  addTherapist, 
-  updateTherapist 
+export const {
+  setMessage,
+  setSearchQuery,
+  toggleFilter,
+  addTherapist,
+  updateTherapist,
 } = homeScreenSlice.actions;
+
+export const {
+  selectMessage,
+  selectSearchQuery,
+  selectFilterActive,
+  selectAllTherapists,
+  selectTherapists,
+  selectTherapistById,
+} = homeScreenSlice.selectors;
 
 export default homeScreenSlice.reducer;
