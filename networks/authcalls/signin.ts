@@ -41,7 +41,7 @@ const dummyAPI = {
 // Store passwords separately for testing
 const MOCK_PASSWORDS: { [key: string]: string } = {
   "user@test.com": "123456",
-  "therapist@test.com": "123456",
+  "therapist@test.com": "1234567",
   "admin@test.com": "admin123"
 };
 
