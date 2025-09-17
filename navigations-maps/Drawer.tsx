@@ -8,7 +8,7 @@ export const DrawerRouteNames = {
   Home: "Home",
   Profile: "Profile",
   Settings: "Settings",
-  LogoutScreen: "Logout", // Make sure this matches the route name in your CustomDrawer menuItems
+  LogoutScreen: "Logout", 
 } as const;
 
 export type DrawerRouteNamesType = typeof DrawerRouteNames[keyof typeof DrawerRouteNames];
@@ -27,15 +27,13 @@ interface IRoute {
 
 export interface IRoutes extends Array<IRoute> {}
 
-/**
- * Drawer routes configuration
- */
+
 export const DrawerRoutes: IRoutes = [
   {
     component: HomeScreen,
     title: DrawerRouteNames.Home,
     options: {
-      headerShown: false, // Using custom header
+      headerShown: false, 
       headerTitle: 'Home',
     },
   },
@@ -43,7 +41,7 @@ export const DrawerRoutes: IRoutes = [
     component: ProfileScreen,
     title: DrawerRouteNames.Profile,
     options: {
-      headerShown: false, // You can create similar custom headers for other screens
+      headerShown: false, 
       headerTitle: 'Profile',
     },
   },

@@ -1,4 +1,3 @@
-// screens/HomeScreen/homeScreenSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 export interface HomeScreenState {
@@ -10,7 +9,7 @@ const initialState: HomeScreenState = {
 };
 
 const homeScreenSlice = createSlice({
-  name: "hello", // Keep as 'hello' to match your store
+  name: "hello", 
   initialState,
   reducers: {
     setMessage: (state, action: PayloadAction<string>) => {
@@ -19,7 +18,6 @@ const homeScreenSlice = createSlice({
   },
 });
 
-// Selector function - matches your actual store structure
 export const selectMessage = (state: { hello: HomeScreenState }) => state.hello.message;
 
 export const { setMessage } = homeScreenSlice.actions;
