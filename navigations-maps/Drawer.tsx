@@ -11,7 +11,7 @@ export const DrawerRouteNames = {
   Settings: "Settings",
 
   LogoutScreen: "Logout",
-  TherapistProfile:"TherapistScreen" // Make sure this matches the route name in your CustomDrawer menuItems
+  TherapistProfile:"TherapistScreen", // Make sure this matches the route name in your CustomDrawer menuItems
 
   LogoutScreen: "LogoutScreen", // Make sure this matches the route name in your CustomDrawer menuItems
 } as const;
