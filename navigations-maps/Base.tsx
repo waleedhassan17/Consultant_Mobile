@@ -3,13 +3,15 @@ import type { NativeStackNavigationOptions } from "@react-navigation/native-stac
 import SignIn from "../screens/signin-screen/SignIn";
 import SignUp from "../screens/signup-screen/SignUp";
 import LogoutScreen from "../screens/LogoutScreen/logout";
-import DrawerNavigator from "../navigators/DrawerNavigator"; // Import your DrawerNavigator
+import DrawerNavigator from "../navigators/DrawerNavigator";
+import TherapistScreen from "../screens/therapistProfileScreen/TherapistScreen" // Import your DrawerNavigator
 
 export const BaseRouteNames = {
   SignIn: "SignIn",
   SignUp: "SignUp",
   Logout: "Logout",
-  Home: "Home", // This will now be the DrawerNavigator
+  Home: "Home",
+  TherapistProfile:"TherapistScreen" // This will now be the DrawerNavigator
 } as const;
 
 export type BaseRouteName = typeof BaseRouteNames[keyof typeof BaseRouteNames];
@@ -40,6 +42,13 @@ export const BaseRoutes: IRoute[] = [
     title: BaseRouteNames.Home,
     options: {
       headerShown: false, // Hide header since DrawerNavigator manages its own headers
+    },
+  },
+  {
+    component: TherapistScreen, // Changed from Therapist to DrawerNavigator
+    title: BaseRouteNames.TherapistProfile,
+    options: {
+      headerShown: true, // Hide header since DrawerNavigator manages its own headers
     },
   },
 ];
