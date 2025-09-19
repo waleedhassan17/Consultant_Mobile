@@ -1,59 +1,41 @@
-import React, { JSX } from 'react';
+import React, { JSX, useEffect } from 'react';
 import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
-  Image, 
-  ScrollView,
-  SafeAreaView,
-  ImageSourcePropType
+  View, Text, StyleSheet, TextInput, TouchableOpacity, 
+  Image, ScrollView, SafeAreaView, ActivityIndicator 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector, useAppDispatch } from '../../hooks/useReduxHooks';
 import { 
-setSearchQuery, 
-toggleFilter 
+  setSearchQuery, toggleFilter, loadTherapists,
+  selectSearchQuery, selectTherapists, selectLoading, selectError
 } from './homeScreenSlice';
-import { selectSearchQuery, selectTherapists } from './homeScreenSlice';
-
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { BaseRouteNames } from "../../navigations-maps/Base";
+import { Therapist } from '../../models/therapist';
 
-type NavigationProp = NativeStackNavigationProp<any>; // Or use a proper param list if you have one
-
-
-
-export interface Therapist {
-  id: number;
-  name: string;
-  specialty: string;
-  rating: number;
-  reviewCount: number;
-  sessions: string;
-  interests: string[];
-  nextAppointment: string;
-  price60: string;
-  price30: string;
-  image: ImageSourcePropType;
-}
+type NavigationProp = NativeStackNavigationProp<any>;
 
 export default function HomeScreen(): JSX.Element {
   const dispatch = useAppDispatch();
-  const searchQuery = useAppSelector(selectSearchQuery);
-  const therapists = useAppSelector(selectTherapists);
   const navigation = useNavigation<NavigationProp>();
 
-  
+  const searchQuery = useAppSelector(selectSearchQuery);
+  const therapists = useAppSelector(selectTherapists);
+  const loading = useAppSelector(selectLoading);
+  const error = useAppSelector(selectError);
+
+  // ✅ Load therapists on mount
+  useEffect(() => {
+    dispatch(loadTherapists());
+  }, [dispatch]);
 
   const handleSearch = (text: string): void => {
     dispatch(setSearchQuery(text));
   };
 
-  const renderStars = (rating: number): JSX.Element[] => {
-    return Array.from({ length: 5 }, (_, index) => (
+  const renderStars = (rating: number): JSX.Element[] =>
+    Array.from({ length: 5 }, (_, index) => (
       <Ionicons
         key={index}
         name="star"
@@ -61,89 +43,88 @@ export default function HomeScreen(): JSX.Element {
         color={index < rating ? "#FFD700" : "#E5E5E5"}
       />
     ));
-  };
 
   const renderTherapistCard = (therapist: Therapist): JSX.Element => (
     <View key={therapist.id} style={styles.therapistCard}>
-      <View style={styles.therapistHeader}>
-        <Image 
-          source={therapist.image} 
-          style={styles.therapistImage}
-        />
-        <View style={styles.therapistInfo}>
-          <Text style={styles.therapistName}>{therapist.name}</Text>
-          <Text style={styles.therapistSpecialty}>{therapist.specialty}</Text>
-          
-          <View style={styles.ratingContainer}>
-            <View style={styles.starsContainer}>
-              {renderStars(therapist.rating)}
-            </View>
-            <View style={{ flexDirection: "column", alignItems: "flex-start" }}>
-  {/* Sessions */}
-              <Text style={styles.sessionCount}>
-                <Ionicons name="calendar" size={16} color="#2196F3" style={styles.topTherapistIcon} /> 
-                {therapist.sessions}+ Sessions
-              </Text>
-
-              {/* Top Therapist */}
-              {therapist.id === 2 && (  // Only show for therapist with id 1}
-              <View style={styles.topTherapistContainer}>
-                <Image 
-                  source={require('../../assets/top.png')} 
-                  style={styles.topTherapistIcon} 
-                />
-                <Text style={styles.toptherapist}>Top therapist</Text>
-              </View>)}
-            </View>
-
-
-             
-            
+    <View style={styles.therapistHeader}>
+      <Image 
+        source={therapist.image} 
+        style={styles.therapistImage}
+      />
+      <View style={styles.therapistInfo}>
+        <Text style={styles.therapistName}>{therapist.name}</Text>
+        <Text style={styles.therapistSpecialty}>{therapist.specialty}</Text>
+        
+        <View style={styles.ratingContainer}>
+          <View style={styles.starsContainer}>
+            {renderStars(therapist.rating)}
           </View>
+          <View style={{ flexDirection: "column", alignItems: "flex-start" }}>
+{/* Sessions */}
+            <Text style={styles.sessionCount}>
+              <Ionicons name="calendar" size={16} color="#2196F3" style={styles.topTherapistIcon} /> 
+              {therapist.sessions}+ Sessions
+            </Text>
+
+            {/* Top Therapist */}
+            {therapist.id === 2 && (  // Only show for therapist with id 1}
+            <View style={styles.topTherapistContainer}>
+              <Image 
+                source={require('../../assets/top.png')} 
+                style={styles.topTherapistIcon} 
+              />
+              <Text style={styles.toptherapist}>Top therapist</Text>
+            </View>)}
+          </View>
+
+
+           
           
-          <Text style={styles.reviewText}>
-            {therapist.rating} ({therapist.reviewCount} Reviews)
-          </Text>
         </View>
-      </View>
-      
-      <View style={styles.interestsContainer}>
-        <Text style={styles.interestsTitle}>Interests:</Text>
-        <View style={styles.interestsTags}>
-          {therapist.interests.map((interest: string, index: number) => (
-            <View key={index} style={styles.interestTag}>
-              <Text style={styles.interestText}>{interest}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-      
-      <View style={styles.appointmentInfo}>
-        <Ionicons name="time" size={16} color="#666" />
-        <Text style={styles.appointmentText}>
-          Nearest appointment: {therapist.nextAppointment}
+        
+        <Text style={styles.reviewText}>
+          {therapist.rating} ({therapist.reviewCount} Reviews)
         </Text>
-      </View>
-      
-      <View style={styles.pricingContainer}>
-        <Ionicons name="card" size={16} color="#2196F3" />
-        <Text style={styles.pricingText}>
-          {therapist.price60} / 60 Min    {therapist.price30} / 30 Min
-        </Text>
-      </View>
-      
-      <View style={styles.buttonContainer}>
-      <TouchableOpacity 
-        style={styles.viewProfileButton}
-        onPress={() => navigation.navigate(BaseRouteNames.TherapistProfile)}
-      >
-        <Text style={styles.viewProfileText}>View Profile</Text>
-      </TouchableOpacity>
-        <TouchableOpacity style={styles.bookNowButton}>
-          <Text style={styles.bookNowText}>Book Now</Text>
-        </TouchableOpacity>
       </View>
     </View>
+    
+    <View style={styles.interestsContainer}>
+      <Text style={styles.interestsTitle}>Interests:</Text>
+      <View style={styles.interestsTags}>
+        {therapist.interests.map((interest: string, index: number) => (
+          <View key={index} style={styles.interestTag}>
+            <Text style={styles.interestText}>{interest}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+    
+    <View style={styles.appointmentInfo}>
+      <Ionicons name="time" size={16} color="#666" />
+      <Text style={styles.appointmentText}>
+        Nearest appointment: {therapist.nextAppointment}
+      </Text>
+    </View>
+    
+    <View style={styles.pricingContainer}>
+      <Ionicons name="card" size={16} color="#2196F3" />
+      <Text style={styles.pricingText}>
+        {therapist.price60} / 60 Min    {therapist.price30} / 30 Min
+      </Text>
+    </View>
+    
+    <View style={styles.buttonContainer}>
+    <TouchableOpacity 
+      style={styles.viewProfileButton}
+      onPress={() => navigation.navigate(BaseRouteNames.TherapistProfile)}
+    >
+      <Text style={styles.viewProfileText}>View Profile</Text>
+    </TouchableOpacity>
+      <TouchableOpacity style={styles.bookNowButton}>
+        <Text style={styles.bookNowText}>Book Now</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
   );
 
   return (

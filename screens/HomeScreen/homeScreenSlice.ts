@@ -1,62 +1,24 @@
-// homeScreenSlice.ts
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createAppSlice } from "../../store/createAppSlice";
-import { ImageSourcePropType } from "react-native";
-
-export interface Therapist {
-  id: number;
-  name: string;
-  specialty: string;
-  rating: number;
-  reviewCount: number;
-  sessions: string;
-  interests: string[];
-  nextAppointment: string;
-  price60: string;
-  price30: string;
-  image: ImageSourcePropType;
-}
+import { Therapist } from "../../models/therapist";
+import { fetchTherapists } from "../../networks/Therapist/therapistapi"; // ✅ API call
 
 export interface HomeScreenState {
   message: string;
   searchQuery: string;
   filterActive: boolean;
   therapists: Therapist[];
+  loading: boolean;       // ✅ Added loading state
+  error: string | null;   // ✅ Added error state
 }
 
 const initialState: HomeScreenState = {
   message: "Hello Pakistan",
   searchQuery: "",
   filterActive: false,
-  therapists: [
-    {
-      id: 1,
-      name: "Ass. prof. Abdur- Rehman Gujjar",
-      specialty: "Psychiatrist",
-      rating: 4.95,
-      reviewCount: 78,
-      sessions: "500",
-      interests: ["Anxiety Disorders", "Depression"],
-      nextAppointment: "Tuesday, Sep.16 at 11:30 PM",
-      price60: "129 USD",
-      price30: "65 USD",
-      image: require("../../assets/profile.jpg"),
-    },
-    {
-      id: 2,
-      name: "Ass. prof. Haris Asif",
-      specialty: "Psychiatrist",
-      rating: 4.9,
-      reviewCount: 70,
-      sessions: "500",
-      interests: ["Anxiety Disorders", "Depression"],
-      nextAppointment: "Tuesday, Sep.19 at 9:30 PM",
-      price60: "109 USD",
-      price30: "50 USD",
-      image: require("../../assets/profile2.jpg"),
-    },
-    // Add more therapists here if needed
-  ],
+  therapists: [],
+  loading: false,
+  error: null,
 };
 
 export const homeScreenSlice = createAppSlice({
@@ -87,6 +49,17 @@ export const homeScreenSlice = createAppSlice({
         }
       }
     ),
+
+    // ✅ Loading & error state reducers
+    setLoading: create.reducer((state, action: PayloadAction<boolean>) => {
+      state.loading = action.payload;
+    }),
+    setError: create.reducer((state, action: PayloadAction<string | null>) => {
+      state.error = action.payload;
+    }),
+    setTherapists: create.reducer((state, action: PayloadAction<Therapist[]>) => {
+      state.therapists = action.payload;
+    }),
   }),
 
   selectors: {
@@ -94,6 +67,8 @@ export const homeScreenSlice = createAppSlice({
     selectSearchQuery: (state) => state.searchQuery,
     selectFilterActive: (state) => state.filterActive,
     selectAllTherapists: (state) => state.therapists,
+    selectLoading: (state) => state.loading,
+    selectError: (state) => state.error,
     selectTherapists: (state) => {
       if (!state.searchQuery) return state.therapists;
       return state.therapists.filter(
@@ -116,6 +91,9 @@ export const {
   toggleFilter,
   addTherapist,
   updateTherapist,
+  setLoading,
+  setError,
+  setTherapists,
 } = homeScreenSlice.actions;
 
 export const {
@@ -123,8 +101,53 @@ export const {
   selectSearchQuery,
   selectFilterActive,
   selectAllTherapists,
+  selectLoading,
+  selectError,
   selectTherapists,
   selectTherapistById,
 } = homeScreenSlice.selectors;
 
 export default homeScreenSlice.reducer;
+
+/**
+ * ✅ Thunk to fetch therapists from API
+ */
+export const loadTherapists = () => async (dispatch: any) => {
+  try {
+    dispatch(setLoading(true));
+    dispatch(setError(null));
+    const data = await fetchTherapists();
+
+    console.log("Fetched therapists:", data); // 👀 check in console
+
+    if (!data || data.length === 0) {
+      throw new Error("No therapists returned from API");
+    }
+
+    dispatch(setTherapists(data));
+  } catch (error: any) {
+    console.error("Failed to fetch therapists:", error);
+    dispatch(setError(error.message || "Failed to load therapists"));
+
+    // ✅ Fallback so screen isn't empty
+    dispatch(
+      setTherapists([
+        {
+          id: 1,
+          name: "Fallback Therapist",
+          specialty: "Psychiatrist",
+          rating: 4.8,
+          reviewCount: 12,
+          sessions: "200",
+          interests: ["Stress", "Anxiety"],
+          nextAppointment: "Tomorrow at 5:00 PM",
+          price60: "99 USD",
+          price30: "50 USD",
+          image: require("../../assets/profile.jpg"),
+        },
+      ])
+    );
+  } finally {
+    dispatch(setLoading(false));
+  }
+};
