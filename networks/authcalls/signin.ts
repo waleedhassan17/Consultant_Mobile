@@ -1,5 +1,5 @@
 import { signInPayload, AuthResponse, userInfo, UserType } from "../../models/auth";
-import { notificationHandler } from "../../notifications/notificationHandler";
+import { NotificationService } from "../../notifications/notificationHandler";
 import { signInResponseSerializer, validateSignInData, signInPayloadSerializer } from "../../serializers/signin";
 
 // Dummy API function to replace the imported API
@@ -91,7 +91,12 @@ export const authLogin = async (signInInfo: signInPayload): Promise<AuthResponse
 
   } catch (e: any) {
     console.error("Login error:", e);
-    notificationHandler({ statusCode: "credentials_invalid" });
+    await NotificationService.sendImmediateNotification({
+     title: "❌ Sign In Failed",
+    body: "Invalid email or password",
+    data: { type: 'sign_in_error' },
+    channelId: 'auth-notifications'
+});
     throw new Error(e.message || "Invalid email or password");
   }
 };

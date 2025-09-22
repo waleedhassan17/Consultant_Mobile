@@ -16,7 +16,7 @@
     "@reduxjs/toolkit": "^2.3.0",
     "expo": "54.0.8",
     "expo-constants": "~18.0.9",
-    "expo-device": "^8.0.7",
+    "expo-device": "~8.0.8",
     "expo-notifications": "~0.32.11",
     "expo-status-bar": "~3.0.8",
     "react": "19.1.0",
@@ -34,6 +34,7 @@
   "devDependencies": {
     "@types/react": "^19.1.13",
     "@types/react-native": "^0.73.0",
+    "metro-react-native-babel-preset": "^0.77.0",
     "typescript": "~5.9.2"
   },
   "private": true

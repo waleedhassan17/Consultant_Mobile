@@ -1,5 +1,5 @@
 // networks/authcalls/logout.ts
-import { notificationHandler } from "../../notifications/notificationHandler";
+import { NotificationService } from "../../notifications/notificationHandler";
 
 interface LogoutPayload {
   accessToken?: string;
@@ -51,7 +51,12 @@ export const logoutUser = async (logoutData?: LogoutPayload): Promise<LogoutResp
 
   } catch (e: any) {
     console.error("Logout error:", e);
-    notificationHandler({ statusCode: "logout_failed" });
+    await NotificationService.sendImmediateNotification({
+    title: "❌ Logout Failed",
+    body: "Invalid email or password",
+    data: { type: 'logout_error' },
+    channelId: 'auth-notifications'
+});
     const newError = new Error(e.message || "Logout failed");
     throw newError;
   }

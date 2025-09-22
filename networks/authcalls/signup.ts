@@ -1,7 +1,7 @@
 // networks/authcalls/signup.ts
 import { signUpPayload, AuthResponse } from "../../models/auth";
 import { signUpResponseSerializer, validateSignUpData } from "../../serializers/signup";
-import { notificationHandler } from "../../notifications/notificationHandler";
+import { NotificationService } from "../../notifications/notificationHandler";
 
 // Mock existing emails/phones to simulate conflicts
 const EXISTING_EMAILS = ["existing@test.com", "taken@test.com"];
@@ -78,7 +78,12 @@ export const registerUser = async (signUpData: signUpPayload): Promise<AuthRespo
 
   } catch (error: any) {
     console.error("Signup error:", error);
-    notificationHandler({ statusCode: "signup_failed" });
+    await NotificationService.sendImmediateNotification({
+    title: "❌ Sign Up Failed",
+    body: "Invalid email or password",
+    data: { type: 'sign_up_error' },
+    channelId: 'auth-notifications'
+});
     throw new Error(error.message || "Registration failed");
   }
 };
