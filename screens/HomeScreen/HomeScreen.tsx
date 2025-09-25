@@ -142,31 +142,33 @@ export default function HomeScreen(): JSX.Element {
         </View>
         <View style={styles.headerRight}>
           <Text style={styles.languageButton}>العربية</Text>
-          <TouchableOpacity style={styles.signInButton}>
+          <TouchableOpacity style={styles.signInButton} onPress={ () => navigation.navigate('SignIn')}>
             <Text style={styles.signInText}>Sign in</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.signUpButton}>
+          <TouchableOpacity style={styles.signUpButton} onPress={() => navigation.navigate('SignUp')}>
             <Text style={styles.signUpText}>Sign up</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView style={styles.content}>
-        {/* Back Button */}
-        <TouchableOpacity style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#666" />
-        </TouchableOpacity>
+{/* Title Row with Back Button */}
+<View style={styles.titleRow}>
+  <TouchableOpacity style={styles.backButton} onPress={navigation.goBack}>
+    <Ionicons name="arrow-back" size={24} color="#666" />
+  </TouchableOpacity>
+  <Text style={styles.mainTitle}>Our Therapists</Text>
+</View>
 
-        {/* Title Section */}
-        <View style={styles.titleSection}>
-          <Text style={styles.mainTitle}>Our Therapists</Text>
-          <Text style={styles.subtitle}>
-            Book your appointment and get our help.
-            <Text style={styles.subtitleItalic}>
-              (All prices include VAT and Service Fees)
-            </Text>
-          </Text>
-        </View>
+{/* Subtitle Section */}
+<View style={styles.titleSection}>
+  <Text style={styles.subtitle}>
+    Book your appointment and get our help.
+    <Text style={styles.subtitleItalic}>
+      (All prices include VAT and Service Fees)
+    </Text>
+  </Text>
+</View>
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
@@ -215,16 +217,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
-  },
+header: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  paddingHorizontal: 20,
+  paddingVertical: 15,
+  paddingTop: 50, // Add this line - increases top padding
+  backgroundColor: '#fff',
+  borderBottomWidth: 1,
+  borderBottomColor: '#e5e5e5',
+},
+titleRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginTop: 20,
+  marginBottom: 10,
+},
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -301,18 +310,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   backButton: {
-    marginTop: 20,
-    marginBottom: 10,
+   // marginTop: 20,
+   // marginBottom: 10,
   },
   titleSection: {
     marginBottom: 25,
   },
-  mainTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#2196F3',
-    marginBottom: 8,
-  },
+mainTitle: {
+  fontSize: 28,
+  fontWeight: 'bold',
+  color: '#2196F3',
+  marginLeft: 15, // Add this line - space between arrow and title
+},
   subtitle: {
     fontSize: 16,
     color: '#666',
