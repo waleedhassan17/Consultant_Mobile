@@ -246,7 +246,10 @@ const SignUp = () => {
   };
 
   const handleBack = () => {
-    (navigation as any).goBack();
+     (navigation as any).reset({
+                  index: 0,
+                  routes: [{ name: 'SignIn' }],
+                });
   };
 
   return (
