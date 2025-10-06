@@ -1,5 +1,9 @@
 import { therapistResponseSerializer } from "../../serializers/therapistSerializer";
 import { Therapist } from "../../models/therapist";
+import { API } from "../network/network";
+
+// Configuration flag to switch between real and dummy API
+const USE_DUMMY_API = true; // Set to false when you want to use real API
 
 // English API Data
 const englishTherapistsData = [
@@ -87,28 +91,50 @@ const arabicTherapistsData = [
   },
 ];
 
-// Dummy API with language support
-const dummyAPI = {
-  GET: async (URL: string, language: 'en' | 'ar' = 'en') => {
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    const data = language === 'en' ? englishTherapistsData : arabicTherapistsData;
-    
-    return {
-      success: true,
-      data: data,
-    };
-  },
+// Dummy API for testing/development
+const fetchTherapistsDummy = async (language: 'en' | 'ar' = 'en') => {
+  console.log("🔄 Using DUMMY API for therapists list");
+  
+  // Simulate network delay
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  
+  const data = language === 'en' ? englishTherapistsData : arabicTherapistsData;
+  
+  return {
+    success: true,
+    data: data,
+  };
 };
 
 export const fetchTherapists = async (language: 'en' | 'ar' = 'en'): Promise<Therapist[]> => {
   try {
     console.log(`Fetching therapists in ${language} language...`);
     
-    const response = await dummyAPI.GET("/therapists", language);
+    // Use dummy API if flag is true
+    if (USE_DUMMY_API) {
+      const response = await fetchTherapistsDummy(language);
 
-    if (!response.success) {
+      if (!response.success) {
+        throw new Error("Failed to fetch therapists");
+      }
+
+      // ✅ Serialize each therapist so data is always normalized
+      return response.data.map((t: any) => therapistResponseSerializer(t));
+    }
+
+    // Real API implementation
+    const response = await API.GET({
+      URL: "therapists",
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept-Language': language,
+      },
+      params: {
+        language: language,
+      },
+    });
+
+    if (!response.data) {
       throw new Error("Failed to fetch therapists");
     }
 
@@ -116,6 +142,12 @@ export const fetchTherapists = async (language: 'en' | 'ar' = 'en'): Promise<The
     return response.data.map((t: any) => therapistResponseSerializer(t));
   } catch (e: any) {
     console.error("Error fetching therapists:", e);
-    throw new Error(e.message || "Unable to fetch therapists");
+    
+    const errorMessage = e.response?.data?.message || 
+                        e.response?.data?.error || 
+                        e.message || 
+                        "Unable to fetch therapists";
+    
+    throw new Error(errorMessage);
   }
 };
