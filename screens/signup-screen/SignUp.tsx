@@ -39,7 +39,7 @@ import {
   togglePrivacyAgreement,
   clearError,
   submitSignUpAsync,
-} from './signupSlice';
+} from './SignUpSlice';
 import CustomInput from '../../custom-components/CustomInput';
 import AppLogo from '../../custom-components/AppLogo';
 

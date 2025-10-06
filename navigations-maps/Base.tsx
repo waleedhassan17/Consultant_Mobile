@@ -1,7 +1,7 @@
 // navigations-maps/Base.ts
 import type { NativeStackNavigationOptions } from "@react-navigation/native-stack";
-import SignIn from "../screens/signin-screen/signIn";
-import SignUp from "../screens/signup-screen/signup";
+import SignIn from "../screens/signin-screen/SignIn"
+import SignUp from "../screens/signup-screen/SignUp";
 import LogoutScreen from "../screens/logout-screen/logout";
 import HomeScreen from "../screens/home-screen/homeScreen";
 import TherapistScreen from "../screens/therapist-screen/therapist"// Import your DrawerNavigator

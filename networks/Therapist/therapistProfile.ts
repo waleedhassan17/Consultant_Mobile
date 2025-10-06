@@ -1,50 +1,11 @@
 // networks/therapist/therapistDetailApi.ts
 
-interface TherapistDetail {
-  id: string;
-  name: string;
-  profession: string;
-  rating: number;
-  totalReviews: number;
-  isTopTherapist: boolean;
-  profileImage: any;
-  tags: string[];
-  interests: string[];
-  details: {
-    id: number;
-    label: string;
-    value: string;
-    icon: any;
-  }[];
-  reviews: {
-    id: number;
-    label: string;
-    value: number;
-  }[];
-  comments: {
-    id: number;
-    text: string;
-    user: string;
-    rating: number;
-    time: string;
-  }[];
-  certificates: {
-    title: string;
-    org: string;
-    date: string;
-  }[];
-  awards: {
-    title: string;
-    org: string;
-    date: string;
-  }[];
-  note: string;
-}
+import { therapistDetailResponseSerializer, TherapistDetail } from "../../serializers/therapistDetailSerilizer";
 
 // English therapist details data
-const englishTherapistDetails: { [key: number]: TherapistDetail } = {
-  1: {
-    id: "1",
+const englishTherapistDetails = [
+  {
+    id: 1,
     name: "Dr. John Doe",
     profession: "Psychiatrist",
     rating: 4.9,
@@ -78,8 +39,8 @@ const englishTherapistDetails: { [key: number]: TherapistDetail } = {
     ],
     note: "(All prices include VAT and Service Fees.)"
   },
-  2: {
-    id: "2",
+  {
+    id: 2,
     name: "Dr. Jane Smith",
     profession: "Clinical Psychologist",
     rating: 4.8,
@@ -113,8 +74,8 @@ const englishTherapistDetails: { [key: number]: TherapistDetail } = {
     ],
     note: "(All prices include VAT and Service Fees.)"
   },
-  3: {
-    id: "3",
+  {
+    id: 3,
     name: "Dr. Michael Brown",
     profession: "Marriage Counselor",
     rating: 4.7,
@@ -148,12 +109,12 @@ const englishTherapistDetails: { [key: number]: TherapistDetail } = {
     ],
     note: "(All prices include VAT and Service Fees.)"
   }
-};
+];
 
 // Arabic therapist details data
-const arabicTherapistDetails: { [key: number]: TherapistDetail } = {
-  1: {
-    id: "1",
+const arabicTherapistDetails = [
+  {
+    id: 1,
     name: "د. أحمد محمود",
     profession: "طبيب نفسي",
     rating: 4.9,
@@ -187,8 +148,8 @@ const arabicTherapistDetails: { [key: number]: TherapistDetail } = {
     ],
     note: "(جميع الأسعار تشمل ضريبة القيمة المضافة ورسوم الخدمة.)"
   },
-  2: {
-    id: "2",
+  {
+    id: 2,
     name: "د. سارة علي",
     profession: "أخصائية نفسية إكلينيكية",
     rating: 4.8,
@@ -222,8 +183,8 @@ const arabicTherapistDetails: { [key: number]: TherapistDetail } = {
     ],
     note: "(جميع الأسعار تشمل ضريبة القيمة المضافة ورسوم الخدمة.)"
   },
-  3: {
-    id: "3",
+  {
+    id: 3,
     name: "د. محمد حسن",
     profession: "مستشار زواج",
     rating: 4.7,
@@ -257,17 +218,16 @@ const arabicTherapistDetails: { [key: number]: TherapistDetail } = {
     ],
     note: "(جميع الأسعار تشمل ضريبة القيمة المضافة ورسوم الخدمة.)"
   }
-};
+];
 
-// Dummy API
+// Dummy API with language support
 const dummyAPI = {
   GET: async (therapistId: number, language: 'en' | 'ar' = 'en') => {
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 1000));
     
-    const data = language === 'en' 
-      ? englishTherapistDetails[therapistId] 
-      : arabicTherapistDetails[therapistId];
+    const dataSource = language === 'en' ? englishTherapistDetails : arabicTherapistDetails;
+    const data = dataSource.find(t => t.id === therapistId);
     
     if (!data) {
       throw new Error("Therapist not found");
@@ -280,6 +240,10 @@ const dummyAPI = {
   },
 };
 
+/**
+ * ✅ Fetch therapist detail with language support
+ * Uses serializer to normalize data - works with both dummy and real APIs
+ */
 export const fetchTherapistDetail = async (
   therapistId: number, 
   language: 'en' | 'ar' = 'en'
@@ -293,7 +257,8 @@ export const fetchTherapistDetail = async (
       throw new Error("Failed to fetch therapist detail");
     }
     
-    return response.data;
+    // ✅ Serialize the response so data is always normalized
+    return therapistDetailResponseSerializer(response.data);
   } catch (e: any) {
     console.error("Error fetching therapist detail:", e);
     throw new Error(e.message || "Unable to fetch therapist detail");

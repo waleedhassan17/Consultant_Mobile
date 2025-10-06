@@ -6,8 +6,8 @@ import { StyleSheet, Platform } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useAppDispatch, useAppSelector } from "../hooks/useReduxHooks";
 
-import { BaseRouteNames } from "../navigations-maps/base";
-import BaseNavigator from "../navigators/baseNavigator";
+import { BaseRouteNames } from "../navigations-maps/Base";
+import BaseNavigator from "../navigators/BaseNavigator";
 
 import {
   selectCurrentUser,

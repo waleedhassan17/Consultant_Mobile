@@ -14,7 +14,7 @@ import {
 } from './homeScreenSlice';
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { BaseRouteNames } from "../../navigations-maps/base";
+import { BaseRouteNames } from "../../navigations-maps/Base";
 import { Therapist } from '../../models/therapist';
 
 type NavigationProp = NativeStackNavigationProp<any>;

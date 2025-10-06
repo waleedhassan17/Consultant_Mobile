@@ -23,7 +23,7 @@ import {
   togglePasswordVisibility,
   clearError,
   submitSignInAsync,
-} from './signInSlice';
+} from './SignInSlice';
 import CustomButton from '../../custom-components/CustomButton';
 import CustomInput from '../../custom-components/CustomInput';
 import AppLogo from '../../custom-components/AppLogo';

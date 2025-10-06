@@ -1,7 +1,7 @@
 // BaseNavigator.tsx
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { BaseRoutes, BaseRouteName } from "../navigations-maps/base";
+import { BaseRoutes, BaseRouteName } from "../navigations-maps/Base";
 import type { NativeStackNavigationOptions } from "@react-navigation/native-stack";
 
 type BaseRoute = {
