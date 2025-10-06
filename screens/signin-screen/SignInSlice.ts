@@ -1,8 +1,12 @@
-// signInSlice.ts
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createAppSlice } from "../../store/createAppSlice";
 import { authLogin } from "../../networks/authcalls/signin";
 import { signInSliceState, UserTypeValue, signInPayload } from "../../models/auth";
+import {
+  KeyForStorage,
+  saveData,
+  saveUserInfo,
+} from "../../utils/storage_utils/storageUtils";
 
 const initialState: signInSliceState = {
   email: "",
@@ -14,6 +18,7 @@ const initialState: signInSliceState = {
   accessToken: "",
   user: null,
 };
+
 
 export const signInSlice = createAppSlice({
   name: "signIn",
@@ -57,50 +62,65 @@ export const signInSlice = createAppSlice({
         email: string;
         password: string;
         userType: UserTypeValue
-      }) => {
-        const payload: signInPayload = {
-          email: email.trim(),
-          password,
-          userType
-        };
+      }, { rejectWithValue }) => {
+        console.log("📤 submitSignInAsync started with:", { email, userType });
+        
+        try {
+          const payload: signInPayload = {
+            email: email.trim(),
+            password,
+            userType
+          };
 
-        console.log('Submitting sign-in with payload:', {
-          email: payload.email,
-          userType: payload.userType
-        });
-
-        // Network layer will handle API call → Serializer → Model transformation
-        const result = await authLogin(payload);
-
-        console.log('Slice received serialized data from network layer:', {
-          userType: result.user.userType,
-          userId: result.user.id,
-          hasToken: !!result.accessToken
-        });
-
-        return result;
+          const result = await authLogin({ signInInfo: payload });
+          
+          // authLogin already returns the data object directly
+          // No need to access result.data
+          console.log("📥 submitSignInAsync received result:", JSON.stringify(result, null, 2));
+          
+          return result;
+        } catch (error: any) {
+          console.log("❌ submitSignInAsync caught error:", error.message);
+          // Return the error message so Redux can handle it properly
+          return rejectWithValue(error.message || "Sign in failed");
+        }
       },
       {
         pending: (state) => {
+          console.log("⏳ Sign in pending...");
           state.status = "loading";
           state.error = "";
         },
         fulfilled: (state, action) => {
+          console.log("✅ Sign in fulfilled with payload:", JSON.stringify(action.payload, null, 2));
+          
           state.status = "idle";
           state.user = action.payload.user;
           state.accessToken = action.payload.accessToken || "";
           state.error = "";
           
-          console.log('Sign-in successful, state updated for user:', {
-            userType: action.payload.user?.userType,
-            userId: action.payload.user?.id,
-            hasToken: !!state.accessToken
-          });
+          // Save tokens and user info to storage
+          saveData(KeyForStorage.accessToken, action.payload.accessToken);
+          if (action.payload.refreshToken) {
+            saveData(KeyForStorage.refreshToken, action.payload.refreshToken);
+          }
+          if (action.payload.user) {
+            saveUserInfo(action.payload.user);
+            saveData(KeyForStorage.userType, action.payload.user.userType);
+          }
+          
+          console.log("💾 User data saved to storage");
+          console.log("👤 Current user:", state.user?.email, "Type:", state.user?.userType);
         },
         rejected: (state, action) => {
+          console.log("❌ Sign in rejected:", action.payload || action.error.message);
+          
           state.status = "failed";
-          state.error = action.error.message || "Sign in failed";
-          console.log('Sign-in failed:', action.error.message);
+          // Use action.payload if available (from rejectWithValue), otherwise use error.message
+          state.error = (action.payload as string) || action.error.message || "Sign in failed";
+          
+          // Show alert with the error message
+          alert(state.error);
         },
       }
     ),

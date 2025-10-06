@@ -1,10 +1,11 @@
 // store/store.ts
 import { configureStore } from "@reduxjs/toolkit";
-import homeScreenReducer from "../screens/HomeScreen/homeScreenSlice";
-import { signInSlice } from "../screens/signin-screen/SignInSlice";
-import { signUpSlice } from "../screens/signup-screen/SignUpSlice";
-import { logoutSlice } from "../screens/LogoutScreen/LogoutSlice";
-import { therapistSlice } from "../screens/therapistProfileScreen/therapistSlice";
+import homeScreenReducer from "../screens/home-screen/homeScreenSlice";
+import { signInSlice } from "../screens/signin-screen/signInSlice";
+import { signUpSlice } from "../screens/signup-screen/signupSlice";
+import { logoutSlice } from "../screens/logout-screen/logoutSlice";
+import { therapistSlice } from "../screens/therapist-screen/therapistSlice";
+import { appContainerSlice } from "../components/appContainerSlice";
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ export const store = configureStore({
     logout: logoutSlice.reducer,
     homeScreen: homeScreenReducer,
     therapist: therapistSlice.reducer,
+    appContainer: appContainerSlice.reducer,
   },
 });
 

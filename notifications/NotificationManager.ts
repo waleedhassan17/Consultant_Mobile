@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { store } from '../store/store';
-import { NotificationService } from '../notifications/notificationHandler';
+import { NotificationService } from './notificationHandler';
 
 export class NotificationManager {
   private static isInitialized = false;

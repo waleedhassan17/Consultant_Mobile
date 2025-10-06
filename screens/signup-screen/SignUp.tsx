@@ -39,9 +39,9 @@ import {
   togglePrivacyAgreement,
   clearError,
   submitSignUpAsync,
-} from './SignUpSlice';
-import CustomInput from '../../Custom-Components/CustomInput';
-import AppLogo from '../../Custom-Components/AppLogo';
+} from './signupSlice';
+import CustomInput from '../../custom-components/CustomInput';
+import AppLogo from '../../custom-components/AppLogo';
 
 const SignUp = () => {
   const navigation = useNavigation();

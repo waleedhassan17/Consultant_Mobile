@@ -113,6 +113,38 @@ export class NotificationService {
     }
   }
 
+  static async sendImmediateNotification({
+  title,
+  body,
+  data,
+  channelId = 'auth-notifications'
+}: {
+  title: string;
+  body: string;
+  data?: any;
+  channelId?: string;
+}): Promise<void> {
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        data: data || {},
+        sound: 'default',
+        badge: 1,
+        priority: Notifications.AndroidNotificationPriority.MAX,
+        ...(Platform.OS === 'android' && {
+          channelId,
+        }),
+      },
+      trigger: null,
+    });
+
+    console.log(`✅ Notification sent: ${title}`);
+  } catch (error) {
+    console.error(`❌ Failed to send notification:`, error);
+  }
+}
   static async clearAllNotifications(): Promise<void> {
     await Notifications.dismissAllNotificationsAsync();
     await Notifications.cancelAllScheduledNotificationsAsync();

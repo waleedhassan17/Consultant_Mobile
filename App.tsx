@@ -2,8 +2,8 @@
 import React from 'react';
 import { Provider } from 'react-redux';
 import { store } from './store/store';
-import AppContainer from './Components/AppContainer';
-import { useNotificationManager } from './notifications/NotificationManager';
+import AppContainer from './components/AppContainer';
+import { useNotificationManager } from './notifications/notificationManager';
 
 const App: React.FC = () => {
   // Initialize notification management

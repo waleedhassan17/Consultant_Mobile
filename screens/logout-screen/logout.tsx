@@ -18,15 +18,15 @@ import {
   clearError,
   resetLogoutState,
   logoutUserAsync,
-} from './LogoutSlice';
+} from './logoutSlice';
 import { 
   selectUser, 
   selectAccessToken,
   resetForm as resetSignUpForm 
-} from '../signup-screen/SignUpSlice';
+} from '../signup-screen/signupSlice';
 import { 
   logout as resetSignInForm 
-} from '../signin-screen/SignInSlice';
+} from '../signin-screen/signInSlice';
 
 const LogoutScreen: React.FC = () => {
   const navigation = useNavigation();

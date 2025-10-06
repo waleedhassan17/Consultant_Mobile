@@ -1,10 +1,10 @@
 // navigations-maps/Base.ts
 import type { NativeStackNavigationOptions } from "@react-navigation/native-stack";
-import SignIn from "../screens/signin-screen/SignIn";
-import SignUp from "../screens/signup-screen/SignUp";
-import LogoutScreen from "../screens/LogoutScreen/logout";
-import DrawerNavigator from "../navigators/DrawerNavigator";
-import TherapistScreen from "../screens/therapistProfileScreen/TherapistScreen" // Import your DrawerNavigator
+import SignIn from "../screens/signin-screen/signIn";
+import SignUp from "../screens/signup-screen/signup";
+import LogoutScreen from "../screens/logout-screen/logout";
+import HomeScreen from "../screens/home-screen/homeScreen";
+import TherapistScreen from "../screens/therapist-screen/therapist"// Import your DrawerNavigator
 
 export const BaseRouteNames = {
   SignIn: "SignIn",
@@ -27,18 +27,18 @@ export const BaseRoutes: IRoute[] = [
     component: SignIn,
     title: BaseRouteNames.SignIn,
     options: {
-      headerShown: true,
+      headerShown: false,
     },
   },
   {
     component: SignUp,
     title: BaseRouteNames.SignUp,
     options: {
-      headerShown: true,
+      headerShown: false,
     },
   },
   {
-    component: DrawerNavigator, // Changed from HomeScreen to DrawerNavigator
+    component: HomeScreen, // Changed from HomeScreen to DrawerNavigator
     title: BaseRouteNames.Home,
     options: {
       headerShown: false, // Hide header since DrawerNavigator manages its own headers
@@ -48,7 +48,7 @@ export const BaseRoutes: IRoute[] = [
     component: TherapistScreen, // Changed from Therapist to DrawerNavigator
     title: BaseRouteNames.TherapistProfile,
     options: {
-      headerShown: true, // Hide header since DrawerNavigator manages its own headers
+      headerShown: false, // Hide header since DrawerNavigator manages its own headers
     },
   },
 ];
