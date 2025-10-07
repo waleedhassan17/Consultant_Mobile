@@ -1,4 +1,3 @@
-// SignUpSlice.ts
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createAppSlice } from "../../store/createAppSlice";
 import { registerUser } from "../../networks/authcalls/signup";
@@ -8,6 +7,11 @@ import {
   UserTypeValue, 
   GenderValue 
 } from "../../models/auth";
+import {
+  KeyForStorage,
+  saveData,
+  saveUserInfo,
+} from "../../utils/storage_utils/storageUtils";
 
 const initialState: signUpSliceState = {
   nickname: "",
@@ -26,7 +30,6 @@ const initialState: signUpSliceState = {
   accessToken: "",
   user: null,
 };
-
 
 export const signUpSlice = createAppSlice({
   name: "signUp",
@@ -76,7 +79,17 @@ export const signUpSlice = createAppSlice({
     }),
 
     submitSignUpAsync: create.asyncThunk(
-      async (formData: {
+      async ({
+        nickname,
+        email,
+        password,
+        confirmPassword,
+        phone,
+        birthYear,
+        gender,
+        userType,
+        agreeToPrivacy
+      }: {
         nickname: string;
         email: string;
         password: string;
@@ -87,21 +100,45 @@ export const signUpSlice = createAppSlice({
         userType: UserTypeValue;
         agreeToPrivacy: boolean;
       }) => {
-        // Create payload in slice - simple data preparation
+        // Validation
+        if (!email || !password) {
+          throw new Error("Email and password are required");
+        }
+        if (!nickname) {
+          throw new Error("Nickname is required");
+        }
+        if (!phone) {
+          throw new Error("Phone number is required");
+        }
+        if (password.length < 6) {
+          throw new Error("Password must be at least 6 characters");
+        }
+        if (password !== confirmPassword) {
+          throw new Error("Passwords do not match");
+        }
+        if (!gender) {
+          throw new Error("Gender is required");
+        }
+        if (!userType) {
+          throw new Error("User type is required");
+        }
+        if (!agreeToPrivacy) {
+          throw new Error("You must agree to the privacy policy");
+        }
+
         const payload: signUpPayload = {
-          nickname: formData.nickname.trim(),
-          email: formData.email.trim(),
-          password: formData.password,
-          confirmPassword: formData.confirmPassword,
-          phone: formData.phone.trim(),
-          birthYear: formData.birthYear.trim(),
-          gender: formData.gender,
-          userType: formData.userType,
-          agreeToPrivacy: formData.agreeToPrivacy,
+          nickname: nickname.trim(),
+          email: email.trim(),
+          password,
+          confirmPassword,
+          phone: phone.trim(),
+          birthYear: birthYear.trim(),
+          gender,
+          userType,
+          agreeToPrivacy,
         };
         
-        // Network layer handles API call + serialization
-        const result = await registerUser(payload);
+        const result = await registerUser({ signUpInfo: payload });
         return result;
       },
       {
@@ -115,12 +152,20 @@ export const signUpSlice = createAppSlice({
           state.accessToken = action.payload.accessToken || "";
           state.error = "";
           
-          console.log('Sign-up successful, state updated for user:', action.payload.user?.userType);
+          // Save tokens and user info to storage
+          saveData(KeyForStorage.accessToken, action.payload.accessToken);
+          if (action.payload.refreshToken) {
+            saveData(KeyForStorage.refreshToken, action.payload.refreshToken);
+          }
+          if (action.payload.user) {
+            saveUserInfo(action.payload.user);
+            saveData(KeyForStorage.userType, action.payload.user.userType);
+          }
         },
         rejected: (state, action) => {
           state.status = "failed";
           state.error = action.error.message || "Registration failed";
-          console.log('Sign-up failed:', action.error.message);
+          alert(action.error.message);
         },
       }
     ),

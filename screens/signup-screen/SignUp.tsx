@@ -40,8 +40,8 @@ import {
   clearError,
   submitSignUpAsync,
 } from './SignUpSlice';
-import CustomInput from '../../Custom-Components/CustomInput';
-import AppLogo from '../../Custom-Components/AppLogo';
+import CustomInput from '../../custom-components/CustomInput';
+import AppLogo from '../../custom-components/AppLogo';
 
 const SignUp = () => {
   const navigation = useNavigation();
@@ -246,7 +246,10 @@ const SignUp = () => {
   };
 
   const handleBack = () => {
-    (navigation as any).goBack();
+     (navigation as any).reset({
+                  index: 0,
+                  routes: [{ name: 'SignIn' }],
+                });
   };
 
   return (

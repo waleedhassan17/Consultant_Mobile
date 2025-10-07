@@ -1,7 +1,9 @@
 // Base user types
 export const UserType = {
+  user: 'user',
   visitor: 'visitor',
   therapist: 'therapist',
+  admin: 'admin',
 } as const;
 
 export type UserTypeValue = typeof UserType[keyof typeof UserType];
@@ -26,15 +28,21 @@ export type AuthStatusValue = typeof AuthStatus[keyof typeof AuthStatus];
 // User info interface
 export interface userInfo {
   id: string;
+  uid: string;
   nickname?: string;
+  displayName?: string;
   email: string;
   phone?: string;
+  phoneNumber?: string;
   birthYear?: string;
   gender?: GenderValue;
   userType: UserTypeValue;
   avatar?: string;
+  photoURL?: string;
   createdAt?: string;
   updatedAt?: string;
+  emailVerified?: boolean;
+  isVerified?: boolean;
 }
 
 // SignIn Model

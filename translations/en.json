@@ -1,0 +1,21 @@
+{
+  "header": {
+    "appName": "Shezlong",
+    "appTagline": "FOR YOU - FOR THEM"
+  },
+  "home": {
+    "title": "Our Therapists",
+    "subtitle": "Book your appointment and get our help.",
+    "subtitleItalic": "(All prices include VAT and Service Fees)",
+    "searchPlaceholder": "Therapist Name or Title",
+    "filters": "Filters",
+    "sortBy": "Sort by",
+    "interests": "Interests:",
+    "nearestAppointment": "Nearest appointment:",
+    "sessions": "Sessions",
+    "reviews": "Reviews",
+    "topTherapist": "Top therapist",
+    "viewProfile": "View Profile",
+    "bookNow": "Book Now"
+  }
+}

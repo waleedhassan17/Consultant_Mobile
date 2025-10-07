@@ -1,97 +1,148 @@
-import { signInPayload, AuthResponse, userInfo, UserType } from "../../models/auth";
-import { notificationHandler } from "../../notifications/notificationHandler";
-import { signInResponseSerializer, validateSignInData, signInPayloadSerializer } from "../../serializers/signin";
+import { signInPayload } from "../../models/auth";
+import { NotificationService } from "../../notifications/notificationHandler";
+import { API } from "../network/network";
 
-// Dummy API function to replace the imported API
-const dummyAPI = {
-  POST: async ({ URL, headers, data }: { URL: string; headers: any; data: any }) => {
-    // Mock network delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Simulate API response structure that matches what serializer expects
-    return {
-      success: true,
-      data: {
-        user: {
-          uid: data.email === "user@test.com" ? "1" : 
-               data.email === "therapist@test.com" ? "2" : "3",
-          email: data.email,
-          displayName: data.email === "user@test.com" ? "Test User" : 
-                      data.email === "therapist@test.com" ? "Dr. Smith" : "Admin User",
-          nickname: data.email === "user@test.com" ? "Test User" : 
-                   data.email === "therapist@test.com" ? "Dr. Smith" : "Admin User",
-          phoneNumber: "+1234567890",
-          photoURL: `https://example.com/avatar${data.email === "user@test.com" ? "1" : "2"}.jpg`,
-          birthYear: "1990",
-          gender: data.email === "therapist@test.com" ? "female" : "male",
-          userType: data.userType,
-          createdAt: "2024-01-01T00:00:00.000Z",
-          updatedAt: "2024-01-01T00:00:00.000Z",
-          emailVerified: true,
-          isVerified: true
-        },
-        accessToken: `mock_jwt_token_${Date.now()}`,
-        refreshToken: `mock_refresh_token_${Date.now()}`
-      },
-      message: "Login successful"
-    };
+// Configuration flag to switch between real and dummy API
+const USE_DUMMY_API = true; // Set to false when you want to use real API
+
+export const authLogin = async ({ signInInfo }: { signInInfo: signInPayload }) => {
+  // Use dummy API if flag is true
+  if (USE_DUMMY_API) {
+    return authLoginDummy({ signInInfo });
   }
-};
 
-// Store passwords separately for testing
-const MOCK_PASSWORDS: { [key: string]: string } = {
-  "user@test.com": "123456",
-  "therapist@test.com": "123456",
-  "admin@test.com": "admin123"
-};
-
-export const authLogin = async (signInInfo: signInPayload): Promise<AuthResponse> => {
+  // Real API implementation
   try {
-    // Step 1: Validate input data using serializer
-    const validation = validateSignInData(signInInfo);
-    if (!validation.isValid) {
-      throw new Error(validation.errors.join(', '));
-    }
-
-    // Step 2: Serialize the payload (clean and format data)
-    const serializedPayload = signInPayloadSerializer(signInInfo);
-    
-    // Step 3: Check credentials against mock data
-    const storedPassword = MOCK_PASSWORDS[serializedPayload.email];
-    if (!storedPassword || storedPassword !== serializedPayload.password) {
-      throw new Error("Invalid credentials");
-    }
-
-    // Step 4: Call dummy API with serialized data
-    const response = await dummyAPI.POST({
-      URL: "login",
+    const response = await API.POST({
+      URL: "auth/login",
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      data: serializedPayload,
+      data: {
+        email: signInInfo.email.trim().toLowerCase(),
+        password: signInInfo.password,
+        userType: signInInfo.userType
+      },
     });
 
-    if (!response.success) {
-      throw new Error("API call failed");
-    }
-
-    // Step 5: Use serializer to transform API response to match our userInfo model
-    const serializedUser = signInResponseSerializer(response);
-
-    // Step 6: Create AuthResponse matching our model
-    const authResponse: AuthResponse = {
-      user: serializedUser,
-      accessToken: response.data.accessToken,
-      refreshToken: response.data.refreshToken,
-      message: response.message
-    };
-
-    console.log("Login successful with proper architecture:", authResponse);
-    return authResponse;
-
+    return response.data;
   } catch (e: any) {
     console.error("Login error:", e);
-    notificationHandler({ statusCode: "credentials_invalid" });
-    throw new Error(e.message || "Invalid email or password");
+    
+    const errorMessage = e.response?.data?.message || 
+                        e.response?.data?.error || 
+                        e.message || 
+                        "Invalid email or password";
+    
+    await NotificationService.sendImmediateNotification({
+      title: "❌ Sign In Failed",
+      body: errorMessage,
+      data: { type: 'sign_in_error' },
+      channelId: 'auth-notifications'
+    });
+    
+    throw new Error(errorMessage);
   }
+};
+
+// Dummy API for testing/development
+const authLoginDummy = async ({ signInInfo }: { signInInfo: signInPayload }) => {
+  console.log("🔄 Using DUMMY API for authentication");
+  console.log("📧 Email:", signInInfo.email);
+  console.log("🔑 Password provided:", !!signInInfo.password);
+  console.log("👤 UserType:", signInInfo.userType);
+  
+  // Mock network delay
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  
+  // Valid credentials - only 3 user types: visitor, therapist, admin
+  const validCredentials: { [key: string]: { password: string; userType: string } } = {
+    "visitor@test.com": { password: "123456", userType: "visitor" },
+    "therapist@test.com": { password: "123456", userType: "therapist" },
+    "admin@test.com": { password: "admin123", userType: "admin" }
+  };
+  
+  const email = signInInfo.email.trim().toLowerCase();
+  const userCreds = validCredentials[email];
+  
+  console.log(`🔍 Looking up credentials for: ${email}`);
+  console.log(`🔍 Found credentials:`, userCreds ? 'Yes' : 'No');
+  
+  // Check if password is provided
+  if (!signInInfo.password) {
+    console.log("❌ Password not provided");
+    await NotificationService.sendImmediateNotification({
+      title: "❌ Sign In Failed",
+      body: "Password is required",
+      data: { type: 'sign_in_error' },
+      channelId: 'auth-notifications'
+    });
+    throw new Error("Password is required");
+  }
+  
+  // Validate credentials (only email and password)
+  if (!userCreds) {
+    console.log("❌ Email not found in dummy database");
+    await NotificationService.sendImmediateNotification({
+      title: "❌ Sign In Failed",
+      body: "Invalid email or password",
+      data: { type: 'sign_in_error' },
+      channelId: 'auth-notifications'
+    });
+    throw new Error("Invalid email or password");
+  }
+
+  if (userCreds.password !== signInInfo.password) {
+    console.log("❌ Password mismatch");
+    await NotificationService.sendImmediateNotification({
+      title: "❌ Sign In Failed",
+      body: "Invalid email or password",
+      data: { type: 'sign_in_error' },
+      channelId: 'auth-notifications'
+    });
+    throw new Error("Invalid email or password");
+  }
+
+  // Success - log the successful login
+  console.log(`✅ Login successful for: ${email} as ${userCreds.userType}`);
+
+  // Generate tokens
+  const accessToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(JSON.stringify({ 
+    email: email, 
+    userType: userCreds.userType,
+    exp: Date.now() + 3600000 
+  }))}.${Date.now()}`;
+  
+  const refreshToken = `refresh_${btoa(email)}_${Date.now()}`;
+
+  // Return response in the format expected by your app
+  const userData = {
+    user: {
+      id: email === "visitor@test.com" ? "1" : 
+          email === "therapist@test.com" ? "2" : "3",
+      uid: email === "visitor@test.com" ? "1" : 
+           email === "therapist@test.com" ? "2" : "3",
+      email: email,
+      displayName: email === "visitor@test.com" ? "Test Visitor" : 
+                  email === "therapist@test.com" ? "Dr. Smith" :
+                  "Admin User",
+      nickname: email === "visitor@test.com" ? "Test Visitor" : 
+               email === "therapist@test.com" ? "Dr. Smith" :
+               "Admin User",
+      phoneNumber: "+1234567890",
+      photoURL: `https://example.com/avatar${email === "visitor@test.com" ? "1" : email === "therapist@test.com" ? "2" : "3"}.jpg`,
+      birthYear: "1990",
+      gender: email === "therapist@test.com" ? "female" : "male",
+      userType: userCreds.userType, // Use the stored userType
+      createdAt: "2024-01-01T00:00:00.000Z",
+      updatedAt: "2024-01-01T00:00:00.000Z",
+      emailVerified: true,
+      isVerified: true
+    },
+    accessToken,
+    refreshToken
+  };
+
+  console.log("✅ Returning user data:", JSON.stringify(userData, null, 2));
+  return userData;
 };

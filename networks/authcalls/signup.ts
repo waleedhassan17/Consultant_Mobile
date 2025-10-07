@@ -1,84 +1,138 @@
-// networks/authcalls/signup.ts
-import { signUpPayload, AuthResponse } from "../../models/auth";
-import { signUpResponseSerializer, validateSignUpData } from "../../serializers/signup";
-import { notificationHandler } from "../../notifications/notificationHandler";
+import { signUpPayload } from "../../models/auth";
+import { NotificationService } from "../../notifications/notificationHandler";
+import { API } from "../network/network"; // Import the API object with axios
 
-// Mock existing emails/phones to simulate conflicts
-const EXISTING_EMAILS = ["existing@test.com", "taken@test.com"];
-const EXISTING_PHONES = ["+1234567999"];
+// Configuration flag to switch between real and dummy API
+const USE_DUMMY_API = true; // Set to false when you want to use real API
 
-// Mock delay to simulate network request
-const mockDelay = () => new Promise(resolve => setTimeout(resolve, 2000));
+export const registerUser = async ({ signUpInfo }: { signUpInfo: signUpPayload }) => {
+  // Use dummy API if flag is true
+  if (USE_DUMMY_API) {
+    return registerUserDummy({ signUpInfo });
+  }
 
-export const registerUser = async (signUpData: signUpPayload): Promise<AuthResponse> => {
+  // Real API implementation
   try {
-    // Mock network delay
-    await mockDelay();
-
-    // Validate using serializer
-    const validationResult = validateSignUpData(signUpData);
-    if (!validationResult.isValid) {
-      throw new Error(validationResult.errors[0]);
-    }
-
-    // Check for existing email/phone conflicts
-    if (EXISTING_EMAILS.includes(signUpData.email)) {
-      throw new Error("Email already registered");
-    }
-
-    if (EXISTING_PHONES.includes(signUpData.phone)) {
-      throw new Error("Phone number already registered");
-    }
-
-    // Simulate API call response structure
-    const mockAPIResponse = {
-      success: true,
-      data: {
-        user: {
-          uid: `user_${Date.now()}`,
-          email: signUpData.email.trim(),
-          displayName: signUpData.nickname.trim(),
-          photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(signUpData.nickname)}&background=random`,
-          phoneNumber: signUpData.phone.trim(),
-          emailVerified: false,
-          nickname: signUpData.nickname.trim(),
-          phone: signUpData.phone.trim(),
-          birthYear: signUpData.birthYear.trim(),
-          gender: signUpData.gender,
-          userType: signUpData.userType,
-          collection: signUpData.userType === 'therapist' ? 'therapists' : 'users',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          isVerified: false,
-          specializations: signUpData.userType === 'therapist' ? [] : undefined,
-          experience: signUpData.userType === 'therapist' ? '' : undefined,
-          qualifications: signUpData.userType === 'therapist' ? [] : undefined,
-        },
-        tokens: {
-          accessToken: `mock_jwt_token_${Date.now()}`,
-          refreshToken: `mock_refresh_token_${Date.now()}`,
-        }
+    const response = await API.POST({
+      URL: "auth/register",
+      headers: {
+        'Content-Type': 'application/json',
       },
-      message: "Registration successful"
-    };
+      data: {
+        email: signUpInfo.email.trim().toLowerCase(),
+        password: signUpInfo.password,
+        nickname: signUpInfo.nickname.trim(),
+        phone: signUpInfo.phone.trim(),
+        birthYear: signUpInfo.birthYear?.trim() || '',
+        gender: signUpInfo.gender,
+        userType: signUpInfo.userType
+      },
+    });
 
-    // Use serializer to transform response to model-compliant format
-    const serializedUser = signUpResponseSerializer(mockAPIResponse);
-
-    // Create AuthResponse
-    const authResponse: AuthResponse = {
-      user: serializedUser,
-      accessToken: mockAPIResponse.data.tokens.accessToken,
-      refreshToken: mockAPIResponse.data.tokens.refreshToken,
-      message: mockAPIResponse.message
-    };
-
-    console.log("Signup successful:", authResponse);
-    return authResponse;
-
+    return response.data;
   } catch (error: any) {
     console.error("Signup error:", error);
-    notificationHandler({ statusCode: "signup_failed" });
-    throw new Error(error.message || "Registration failed");
+    
+    const errorMessage = error.response?.data?.message || 
+                        error.response?.data?.error || 
+                        error.message || 
+                        "Registration failed";
+    
+    await NotificationService.sendImmediateNotification({
+      title: "❌ Sign Up Failed",
+      body: errorMessage,
+      data: { type: 'sign_up_error' },
+      channelId: 'auth-notifications'
+    });
+    
+    throw new Error(errorMessage);
   }
+};
+
+// Dummy API for testing/development
+const registerUserDummy = async ({ signUpInfo }: { signUpInfo: signUpPayload }) => {
+  console.log("🔄 Using DUMMY API for registration");
+  
+  // Mock network delay
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  // Mock existing emails/phones to simulate conflicts
+  const existingEmails = ["existing@test.com", "taken@test.com", "user@test.com", "therapist@test.com", "admin@test.com"];
+  const existingPhones = ["+1234567999"];
+
+  const email = signUpInfo.email.trim().toLowerCase();
+  const phone = signUpInfo.phone.trim();
+
+  // Check for existing email
+  if (existingEmails.includes(email)) {
+    await NotificationService.sendImmediateNotification({
+      title: "❌ Sign Up Failed",
+      body: "Email already registered",
+      data: { type: 'sign_up_error' },
+      channelId: 'auth-notifications'
+    });
+    throw new Error("Email already registered");
+  }
+
+  // Check for existing phone
+  if (existingPhones.includes(phone)) {
+    await NotificationService.sendImmediateNotification({
+      title: "❌ Sign Up Failed",
+      body: "Phone number already registered",
+      data: { type: 'sign_up_error' },
+      channelId: 'auth-notifications'
+    });
+    throw new Error("Phone number already registered");
+  }
+
+  // Validate password length
+  if (signUpInfo.password.length < 6) {
+    await NotificationService.sendImmediateNotification({
+      title: "❌ Sign Up Failed",
+      body: "Password must be at least 6 characters",
+      data: { type: 'sign_up_error' },
+      channelId: 'auth-notifications'
+    });
+    throw new Error("Password must be at least 6 characters");
+  }
+
+  // Generate user ID
+  const userId = `user_${Date.now()}`;
+
+  // Generate tokens
+  const accessToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(JSON.stringify({ 
+    email: email, 
+    userType: signUpInfo.userType,
+    exp: Date.now() + 3600000 
+  }))}.${Date.now()}`;
+  
+  const refreshToken = `refresh_${btoa(email)}_${Date.now()}`;
+
+  // Return response in the format expected by slice
+  return {
+    user: {
+      id: userId,
+      uid: userId,
+      email: email,
+      displayName: signUpInfo.nickname.trim(),
+      nickname: signUpInfo.nickname.trim(),
+      phoneNumber: phone,
+      photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(signUpInfo.nickname.trim())}&background=random`,
+      birthYear: signUpInfo.birthYear?.trim() || '',
+      gender: signUpInfo.gender,
+      userType: signUpInfo.userType,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      emailVerified: false,
+      isVerified: false,
+      // Therapist-specific fields
+      ...(signUpInfo.userType === 'therapist' && {
+        specializations: [],
+        experience: '',
+        qualifications: []
+      })
+    },
+    accessToken,
+    refreshToken
+  };
 };

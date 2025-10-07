@@ -24,9 +24,9 @@ import {
   clearError,
   submitSignInAsync,
 } from './SignInSlice';
-import CustomButton from '../../Custom-Components/CustomButton';
-import CustomInput from '../../Custom-Components/CustomInput';
-import AppLogo from '../../Custom-Components/AppLogo';
+import CustomButton from '../../custom-components/CustomButton';
+import CustomInput from '../../custom-components/CustomInput';
+import AppLogo from '../../custom-components/AppLogo';
 
 const SignIn = () => {
   const navigation = useNavigation();

@@ -1,15 +1,18 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createAppSlice } from "../../store/createAppSlice";
 import { Therapist } from "../../models/therapist";
-import { fetchTherapists } from "../../networks/Therapist/therapistapi"; // ✅ API call
+import { fetchTherapists } from "../../networks/therapist/therapistapi";
+import { LanguageStorage, Language } from "../../utils/language-storage/languageStorage";
 
 export interface HomeScreenState {
   message: string;
   searchQuery: string;
   filterActive: boolean;
   therapists: Therapist[];
-  loading: boolean;       // ✅ Added loading state
-  error: string | null;   // ✅ Added error state
+  loading: boolean;
+  error: string | null;
+  language: Language;
+  languageLoaded: boolean; // Track if language has been loaded from storage
 }
 
 const initialState: HomeScreenState = {
@@ -19,6 +22,8 @@ const initialState: HomeScreenState = {
   therapists: [],
   loading: false,
   error: null,
+  language: 'en',
+  languageLoaded: false,
 };
 
 export const homeScreenSlice = createAppSlice({
@@ -37,6 +42,12 @@ export const homeScreenSlice = createAppSlice({
     addTherapist: create.reducer((state, action: PayloadAction<Therapist>) => {
       state.therapists.push(action.payload);
     }),
+    setLanguage: create.reducer((state, action: PayloadAction<Language>) => {
+      state.language = action.payload;
+    }),
+    setLanguageLoaded: create.reducer((state, action: PayloadAction<boolean>) => {
+      state.languageLoaded = action.payload;
+    }),
     updateTherapist: create.reducer(
       (state, action: PayloadAction<{ id: number; updates: Partial<Therapist> }>) => {
         const { id, updates } = action.payload;
@@ -49,8 +60,6 @@ export const homeScreenSlice = createAppSlice({
         }
       }
     ),
-
-    // ✅ Loading & error state reducers
     setLoading: create.reducer((state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
     }),
@@ -69,6 +78,8 @@ export const homeScreenSlice = createAppSlice({
     selectAllTherapists: (state) => state.therapists,
     selectLoading: (state) => state.loading,
     selectError: (state) => state.error,
+    selectLanguage: (state) => state.language,
+    selectLanguageLoaded: (state) => state.languageLoaded,
     selectTherapists: (state) => {
       if (!state.searchQuery) return state.therapists;
       return state.therapists.filter(
@@ -94,6 +105,8 @@ export const {
   setLoading,
   setError,
   setTherapists,
+  setLanguage,
+  setLanguageLoaded,
 } = homeScreenSlice.actions;
 
 export const {
@@ -105,20 +118,72 @@ export const {
   selectError,
   selectTherapists,
   selectTherapistById,
+  selectLanguage,
+  selectLanguageLoaded,
 } = homeScreenSlice.selectors;
 
 export default homeScreenSlice.reducer;
 
 /**
- * ✅ Thunk to fetch therapists from API
+ * ✅ Thunk to initialize language from AsyncStorage
+ * The LanguageStorage service automatically saves 'en' if nothing is stored
  */
-export const loadTherapists = () => async (dispatch: any) => {
+export const initializeLanguage = () => async (dispatch: any) => {
+  try {
+    const savedLanguage = await LanguageStorage.getLanguage();
+    dispatch(setLanguage(savedLanguage));
+    dispatch(setLanguageLoaded(true));
+    console.log(`Initialized language: ${savedLanguage}`);
+  } catch (error) {
+    console.error('Failed to initialize language:', error);
+    // Fallback to English and try to save it
+    try {
+      await LanguageStorage.saveLanguage('en');
+    } catch (saveError) {
+      console.error('Failed to save fallback language:', saveError);
+    }
+    dispatch(setLanguage('en'));
+    dispatch(setLanguageLoaded(true));
+  }
+};
+
+/**
+ * ✅ Thunk to toggle language and persist to AsyncStorage
+ */
+export const toggleLanguage = () => async (dispatch: any, getState: any) => {
+  try {
+    const currentLanguage = selectLanguage(getState());
+    const newLanguage: Language = currentLanguage === 'en' ? 'ar' : 'en';
+    
+    // Save to AsyncStorage
+    await LanguageStorage.saveLanguage(newLanguage);
+    
+    // Update Redux state
+    dispatch(setLanguage(newLanguage));
+    
+    // Reload therapists with new language
+    dispatch(loadTherapists(newLanguage));
+    
+    console.log(`Language toggled to: ${newLanguage}`);
+  } catch (error) {
+    console.error('Failed to toggle language:', error);
+  }
+};
+
+/**
+ * ✅ Thunk to fetch therapists from API with language support
+ */
+export const loadTherapists = (language?: Language) => async (dispatch: any, getState: any) => {
   try {
     dispatch(setLoading(true));
     dispatch(setError(null));
-    const data = await fetchTherapists();
+    
+    // Use provided language or get from state
+    const lang = language || selectLanguage(getState());
+    
+    const data = await fetchTherapists(lang);
 
-    console.log("Fetched therapists:", data); // 👀 check in console
+    console.log(`Fetched ${data.length} therapists in ${lang}`);
 
     if (!data || data.length === 0) {
       throw new Error("No therapists returned from API");
@@ -129,7 +194,7 @@ export const loadTherapists = () => async (dispatch: any) => {
     console.error("Failed to fetch therapists:", error);
     dispatch(setError(error.message || "Failed to load therapists"));
 
-    // ✅ Fallback so screen isn't empty
+    // ✅ Fallback
     dispatch(
       setTherapists([
         {
