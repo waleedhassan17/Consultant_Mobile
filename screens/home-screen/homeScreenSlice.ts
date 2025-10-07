@@ -1,7 +1,7 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createAppSlice } from "../../store/createAppSlice";
 import { Therapist } from "../../models/therapist";
-import { fetchTherapists } from "../../networks/therapist/therapistapi";
+import { fetchTherapists } from "../../networks/Therapist/therapistapi";
 import { LanguageStorage, Language } from "../../utils/language-storage/languageStorage";
 
 export interface HomeScreenState {
