@@ -1,5 +1,5 @@
 // navigations-map/Drawer.ts
-import HomeScreen from "../screens/HomeScreen/HomeScreen";
+import HomeScreen from "../screens/home-Screen/HomeScreen";
 import ProfileScreen from "../screens/ProfileScreen/ProfileScreen";
 import SettingsScreen from "../screens/SettingsScreen/Settings";
 import LogoutScreen from "../screens/LogoutScreen/logout";
