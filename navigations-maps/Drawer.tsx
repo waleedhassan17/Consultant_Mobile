@@ -1,5 +1,5 @@
 // navigations-map/Drawer.ts
-import HomeScreen from "../screens/home-Screen/HomeScreen";
+import HomeScreen from "../screens/home-screen/homeScreen";
 import ProfileScreen from "../screens/ProfileScreen/ProfileScreen";
 import SettingsScreen from "../screens/SettingsScreen/Settings";
 import LogoutScreen from "../screens/LogoutScreen/logout";
@@ -10,7 +10,7 @@ export const DrawerRouteNames = {
   Profile: "Profile",
   Settings: "Settings",
 
-  LogoutScreen: "Logout",
+  // LogoutScreen: "Logout",
   TherapistProfile:"TherapistScreen", // Make sure this matches the route name in your CustomDrawer menuItems
 
   LogoutScreen: "LogoutScreen", // Make sure this matches the route name in your CustomDrawer menuItems

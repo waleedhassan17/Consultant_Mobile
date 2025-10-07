@@ -118,6 +118,7 @@ export default function HomeScreen(): JSX.Element {
         <View style={styles.therapistsList}>
         {sortedTherapists.map((therapist) => (
     <TherapistCard key={therapist.id} therapist={therapist} />
+    
   ))}
         </View>
       </ScrollView>

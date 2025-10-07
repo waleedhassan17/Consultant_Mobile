@@ -1,6 +1,6 @@
 // store/store.ts
 import { configureStore } from "@reduxjs/toolkit";
-import homeScreenReducer from "../screens/home-Screen/homeScreenSlice";
+import homeScreenReducer from "../screens/home-screen/homeScreenSlice";
 import { signInSlice } from "../screens/signin-screen/SignInSlice";
 import { signUpSlice } from "../screens/signup-screen/SignUpSlice";
 import { logoutSlice } from "../screens/LogoutScreen/LogoutSlice";
