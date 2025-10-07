@@ -9,7 +9,7 @@ import {
 import { DrawerContentScrollView, DrawerContentComponentProps } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector, useAppDispatch } from '../hooks/useReduxHooks';
-import { selectMessage, setMessage } from '../screens/home-Screen/homeScreenSlice';
+import { selectMessage, setMessage } from '../screens/home-screen/homeScreenSlice';
 
 interface MenuItem {
   name: string;

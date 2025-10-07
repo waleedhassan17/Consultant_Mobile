@@ -79,7 +79,7 @@ export class NotificationService {
   }
 
   // Keep original method names for backward compatibility
-  static async sendSignInSuccessNotification(userType: 'visitor' | 'therapist'): Promise<void> {
+  static async sendSignInSuccessNotification(userType: 'visitor' | 'therapist' ): Promise<void> {
     await this.sendAuthNotification('signin', userType);
   }
 

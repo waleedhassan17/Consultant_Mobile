@@ -132,14 +132,17 @@ const App: React.FC = () => {
           };
           
           // Send notification with a small delay to ensure state is stable
-          setTimeout(() => {
-            if (signInState.user?.userType) {
-              NotificationService.sendSignInSuccessNotification(signInState.user.userType)
-                .catch(error => {
-                  console.error('Failed to send sign in notification:', error);
-                });
-            }
-          }, 100); // Reduced delay
+          // Sign In notification
+setTimeout(() => {
+  const type = signInState.user?.userType;
+  if (type === 'therapist' || type === 'visitor') {
+    NotificationService.sendSignInSuccessNotification(type)
+      .catch(error => console.error('Failed to send sign in notification:', error));
+  } else {
+    console.log('User type not eligible for sign-in notification:', type);
+  }
+}, 100);
+// Reduced delay
         } else {
           console.log('Sign-in success already processed, skipping notification');
         }
@@ -173,14 +176,17 @@ const App: React.FC = () => {
           };
           
           // Send notification with a small delay to ensure state is stable
-          setTimeout(() => {
-            if (signUpState.user?.userType) {
-              NotificationService.sendSignUpSuccessNotification(signUpState.user.userType)
-                .catch(error => {
-                  console.error('Failed to send sign up notification:', error);
-                });
-            }
-          }, 100); // Reduced delay
+         // Sign Up notification
+setTimeout(() => {
+  const type = signUpState.user?.userType;
+  if (type === 'therapist' || type === 'visitor') {
+    NotificationService.sendSignUpSuccessNotification(type)
+      .catch(error => console.error('Failed to send sign up notification:', error));
+  } else {
+    console.log('User type not eligible for sign-up notification:', type);
+  }
+}, 100);
+ // Reduced delay
         } else {
           console.log('Sign-up success already processed, skipping notification');
         }

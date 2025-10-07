@@ -1,16 +1,16 @@
 // navigations-map/Drawer.ts
-import HomeScreen from "../screens/home-Screen/HomeScreen";
-import ProfileScreen from "../screens/ProfileScreen/ProfileScreen";
-import SettingsScreen from "../screens/SettingsScreen/Settings";
-import LogoutScreen from "../screens/LogoutScreen/logout";
-import TherapistScreen from "../screens/therapistProfileScreen/TherapistScreen";
+import HomeScreen from "../screens/home-screen/homeScreen";
+// import ProfileScreen from "../screens/";
+// import SettingsScreen from "../screens/SettingsScreen/Settings";
+ import LogoutScreen from "../screens/logout-screen/logout";
+import TherapistScreen from "../screens/therapist-screen/therapist";
 
 export const DrawerRouteNames = {
   Home: "Home",
-  Profile: "Profile",
-  Settings: "Settings",
+  // Profile: "Profile",
+  // Settings: "Settings",
 
-  LogoutScreen: "Logout",
+  // LogoutScreen: "Logout",
   TherapistProfile:"TherapistScreen", // Make sure this matches the route name in your CustomDrawer menuItems
 
   LogoutScreen: "LogoutScreen", // Make sure this matches the route name in your CustomDrawer menuItems
@@ -44,22 +44,22 @@ export const DrawerRoutes: IRoutes = [
       headerTitle: 'Home',
     },
   },
-  {
-    component: ProfileScreen,
-    title: DrawerRouteNames.Profile,
-    options: {
-      headerShown: false, // You can create similar custom headers for other screens
-      headerTitle: 'Profile',
-    },
-  },
-  {
-    component: SettingsScreen,
-    title: DrawerRouteNames.Settings,
-    options: {
-      headerShown: false,
-      headerTitle: 'Settings',
-    },
-  },
+  // {
+  //   component: ProfileScreen,
+  //   title: DrawerRouteNames.Profile,
+  //   options: {
+  //     headerShown: false, // You can create similar custom headers for other screens
+  //     headerTitle: 'Profile',
+  //   },
+  // },
+  // {
+  //   component: SettingsScreen,
+  //   title: DrawerRouteNames.Settings,
+  //   options: {
+  //     headerShown: false,
+  //     headerTitle: 'Settings',
+  //   },
+  // },
   {
     component: LogoutScreen,
     title: DrawerRouteNames.LogoutScreen,
