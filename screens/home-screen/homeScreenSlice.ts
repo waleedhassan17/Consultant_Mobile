@@ -4,6 +4,8 @@ import { Therapist } from "../../models/therapist";
 import { fetchTherapists } from "../../networks/therapist/therapistapi";
 import { LanguageStorage, Language } from "../../utils/language-storage/languageStorage";
 
+export type SortOption = "default" | "price-low" | "price-high" | "rating" | "sessions";
+
 export interface HomeScreenState {
   message: string;
   searchQuery: string;
@@ -12,7 +14,8 @@ export interface HomeScreenState {
   loading: boolean;
   error: string | null;
   language: Language;
-  languageLoaded: boolean; // Track if language has been loaded from storage
+  languageLoaded: boolean;
+  sortOption: SortOption;
 }
 
 const initialState: HomeScreenState = {
@@ -24,6 +27,7 @@ const initialState: HomeScreenState = {
   error: null,
   language: 'en',
   languageLoaded: false,
+  sortOption: 'default',
 };
 
 export const homeScreenSlice = createAppSlice({
@@ -47,6 +51,9 @@ export const homeScreenSlice = createAppSlice({
     }),
     setLanguageLoaded: create.reducer((state, action: PayloadAction<boolean>) => {
       state.languageLoaded = action.payload;
+    }),
+    setSortOption: create.reducer((state, action: PayloadAction<SortOption>) => {
+      state.sortOption = action.payload;
     }),
     updateTherapist: create.reducer(
       (state, action: PayloadAction<{ id: number; updates: Partial<Therapist> }>) => {
@@ -80,6 +87,7 @@ export const homeScreenSlice = createAppSlice({
     selectError: (state) => state.error,
     selectLanguage: (state) => state.language,
     selectLanguageLoaded: (state) => state.languageLoaded,
+    selectSortOption: (state) => state.sortOption,
     selectTherapists: (state) => {
       if (!state.searchQuery) return state.therapists;
       return state.therapists.filter(
@@ -107,6 +115,7 @@ export const {
   setTherapists,
   setLanguage,
   setLanguageLoaded,
+  setSortOption,
 } = homeScreenSlice.actions;
 
 export const {
@@ -120,6 +129,7 @@ export const {
   selectTherapistById,
   selectLanguage,
   selectLanguageLoaded,
+  selectSortOption,
 } = homeScreenSlice.selectors;
 
 export default homeScreenSlice.reducer;

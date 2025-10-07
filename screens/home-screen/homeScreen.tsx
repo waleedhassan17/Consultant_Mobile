@@ -1,7 +1,7 @@
 import React, { JSX, useEffect, useState, useCallback } from 'react';
 import { 
   View, Text, StyleSheet, TextInput, TouchableOpacity, 
-  Image, ScrollView, SafeAreaView, ActivityIndicator, Animated, RefreshControl
+  ScrollView, SafeAreaView, ActivityIndicator, Animated, RefreshControl
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector, useAppDispatch } from '../../hooks/useReduxHooks';
@@ -10,12 +10,13 @@ import {
   setSearchQuery, toggleFilter, loadTherapists,
   selectSearchQuery, selectTherapists, selectLoading, 
   selectError, toggleLanguage, selectLanguage,
-  initializeLanguage, selectLanguageLoaded,
+  initializeLanguage, selectLanguageLoaded, setSortOption,
+  selectSortOption
 } from './homeScreenSlice';
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { BaseRouteNames } from "../../navigations-maps/Base";
-import { Therapist } from '../../models/therapist';
+import TherapistCard from '../../custom-components/TherapistCard';
+import SortModal from '../../custom-components/SortMenu';
 
 type NavigationProp = NativeStackNavigationProp<any>;
 
@@ -30,13 +31,31 @@ export default function HomeScreen(): JSX.Element {
   const error = useAppSelector(selectError);
   const language = useAppSelector(selectLanguage);
   const languageLoaded = useAppSelector(selectLanguageLoaded);
+  const sortOption = useAppSelector(selectSortOption);
   
   const [refreshing, setRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
+  const [sortVisible, setSortVisible] = useState(false);
+
+  // Sort therapists based on selected option
+  const sortedTherapists = [...therapists].sort((a, b) => {
+    switch (sortOption) {
+      case "price-low":
+        return parseFloat(a.price60.replace(/[^\d.]/g, '')) - parseFloat(b.price60.replace(/[^\d.]/g, ''));
+      case "price-high":
+        return parseFloat(b.price60.replace(/[^\d.]/g, '')) - parseFloat(a.price60.replace(/[^\d.]/g, ''));
+      case "rating":
+        return b.rating - a.rating;
+      case "sessions":
+        return Number(b.sessions) - Number(a.sessions);
+      default:
+        return 0;
+    }
+  });
 
   // Replicate therapists for testing scroll functionality
-  const replicatedTherapists = [...therapists, ...therapists, ...therapists, ...therapists];
+  const replicatedTherapists = [...sortedTherapists, ...sortedTherapists, ...sortedTherapists];
 
   // Initialize language from AsyncStorage on app start
   useEffect(() => {
@@ -67,7 +86,6 @@ export default function HomeScreen(): JSX.Element {
   const handleScroll = useCallback((event: any) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
     
-    // Check if user scrolled near the bottom (within 100 pixels)
     const paddingToBottom = 100;
     const isCloseToBottom = 
       layoutMeasurement.height + contentOffset.y >= 
@@ -101,97 +119,10 @@ export default function HomeScreen(): JSX.Element {
     dispatch(setSearchQuery(text));
   };
 
-  const renderStars = (rating: number): JSX.Element[] =>
-    Array.from({ length: 5 }, (_, index) => (
-      <Ionicons
-        key={index}
-        name="star"
-        size={14}
-        color={index < rating ? "#FFD700" : "#E5E5E5"}
-      />
-    ));
-
-  const renderTherapistCard = (therapist: Therapist, index: number): JSX.Element => (
-    <View key={`${therapist.id}-${index}`} style={styles.therapistCard}>
-      <View style={[styles.therapistHeader, isRTL && styles.therapistHeaderRTL]}>
-        <Image 
-          source={therapist.image} 
-          style={[styles.therapistImage, isRTL && { marginLeft: 15, marginRight: 0 }]}
-        />
-        <View style={styles.therapistInfo}>
-          <Text style={[styles.therapistName, isRTL && styles.textRTL]}>{therapist.name}</Text>
-          <Text style={[styles.therapistSpecialty, isRTL && styles.textRTL]}>{therapist.specialty}</Text>
-          
-          <View style={styles.ratingContainer}>
-            <View style={[styles.starsContainer, isRTL && styles.starsContainerRTL]}>
-              {renderStars(therapist.rating)}
-            </View>
-            <View style={{ flexDirection: "column", alignItems: isRTL ? "flex-end" : "flex-start" }}>
-              <Text style={[styles.sessionCount, isRTL && styles.textRTL]}>
-                <Ionicons name="calendar" size={16} color="#2196F3" style={styles.topTherapistIcon} /> 
-                {therapist.sessions}+ {t('home.sessions')}
-              </Text>
-
-              {therapist.id === 2 && (
-                <View style={[styles.topTherapistContainer, isRTL && styles.topTherapistContainerRTL]}>
-                  <Image 
-                    source={require('../../assets/top.png')} 
-                    style={styles.topTherapistIcon} 
-                  />
-                  <Text style={styles.toptherapist}>{t('home.topTherapist')}</Text>
-                </View>
-              )}
-            </View>
-          </View>
-          
-          <Text style={[styles.reviewText, isRTL && styles.textRTL]}>
-            {therapist.rating} ({therapist.reviewCount} {t('home.reviews')})
-          </Text>
-        </View>
-      </View>
-      
-      <View style={styles.interestsContainer}>
-        <Text style={[styles.interestsTitle, isRTL && styles.textRTL]}>{t('home.interests')}</Text>
-        <View style={[styles.interestsTags, isRTL && styles.interestsTagsRTL]}>
-          {therapist.interests.map((interest: string, idx: number) => (
-            <View key={idx} style={styles.interestTag}>
-              <Text style={[styles.interestText, isRTL && styles.textRTL]}>{interest}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-      
-      <View style={[styles.appointmentInfo, isRTL && styles.appointmentInfoRTL]}>
-        <Ionicons name="time" size={16} color="#666" />
-        <Text style={[styles.appointmentText, isRTL && styles.textRTL]}>
-          {t('home.nearestAppointment')} {therapist.nextAppointment}
-        </Text>
-      </View>
-      
-      <View style={[styles.pricingContainer, isRTL && styles.pricingContainerRTL]}>
-        <Ionicons name="card" size={16} color="#2196F3" />
-        <Text style={[styles.pricingText, isRTL && styles.textRTL]}>
-          {therapist.price60} / 60 Min    {therapist.price30} / 30 Min
-        </Text>
-      </View>
-      
-      <View style={styles.buttonContainer}>
-        // In the renderTherapistCard function, update the View Profile button:
-
-        <TouchableOpacity 
-          style={styles.viewProfileButton}
-          onPress={() => navigation.navigate(BaseRouteNames.TherapistProfile, { 
-          therapistId: therapist.id 
-        })}
-        >
-          <Text style={styles.viewProfileText}>{t('home.viewProfile')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.bookNowButton}>
-          <Text style={styles.bookNowText}>{t('home.bookNow')}</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+  const handleSortSelect = (option: string): void => {
+    dispatch(setSortOption(option));
+    setSortVisible(false);
+  };
 
   // Show loading while language is being initialized
   if (!languageLoaded) {
@@ -205,6 +136,7 @@ export default function HomeScreen(): JSX.Element {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <View style={[styles.headerLeft, isRTL && styles.headerLeftRTL]}>
           <View style={styles.logoContainer}>
@@ -263,6 +195,7 @@ export default function HomeScreen(): JSX.Element {
           />
         }
       >
+        {/* Title Row */}
         <View style={[styles.titleRow, isRTL && styles.titleRowRTL]}>
           <TouchableOpacity style={styles.backButton} onPress={navigation.goBack}>
             <Ionicons name={isRTL ? "arrow-forward" : "arrow-back"} size={24} color="#666" />
@@ -270,6 +203,7 @@ export default function HomeScreen(): JSX.Element {
           <Text style={[styles.mainTitle, isRTL && styles.mainTitleRTL]}>{t('home.title')}</Text>
         </View>
 
+        {/* Subtitle */}
         <View style={styles.titleSection}>
           <Text style={[styles.subtitle, isRTL && styles.textRTL]}>
             {t('home.subtitle')}
@@ -279,6 +213,7 @@ export default function HomeScreen(): JSX.Element {
           </Text>
         </View>
 
+        {/* Search Bar */}
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={20} color="#999" style={[styles.searchIcon, isRTL && { marginLeft: 10, marginRight: 0 }]} />
           <TextInput
@@ -290,27 +225,33 @@ export default function HomeScreen(): JSX.Element {
           />
         </View>
 
+        {/* Filter and Sort Buttons */}
         <View style={[styles.filterContainer, isRTL && styles.filterContainerRTL]}>
           <TouchableOpacity 
             style={styles.filterButton}
             onPress={() => dispatch(toggleFilter())}
           >
-            <Ionicons name="options" size={16} color="#666" />
-            <Text style={[styles.filterText, isRTL && styles.textRTL]}>{t('home.filters')}</Text>
+            <Ionicons name="options" size={16} color="#60a899" />
+            <Text style={styles.filterText}>{t('home.filters')}</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.sortButton}>
-            <Text style={[styles.sortText, isRTL && styles.textRTL]}>{t('home.sortBy')}</Text>
-            <Ionicons name="chevron-down" size={16} color="#2196F3" />
+          <TouchableOpacity 
+            style={styles.sortButton}
+            onPress={() => setSortVisible(true)}
+          >
+            <Text style={styles.sortText}>{t('home.sortBy')}</Text>
+            <Ionicons name="chevron-down" size={16} color="#60a899" />
           </TouchableOpacity>
         </View>
 
+        {/* Error Message */}
         {error && (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{error}</Text>
           </View>
         )}
 
+        {/* Loading State */}
         {loading && !refreshing && therapists.length === 0 ? (
           <View style={styles.initialLoadingContainer}>
             <ActivityIndicator size="large" color="#2196F3" />
@@ -318,10 +259,17 @@ export default function HomeScreen(): JSX.Element {
           </View>
         ) : (
           <>
+            {/* Therapists List using TherapistCard Component */}
             <View style={styles.therapistsList}>
-              {replicatedTherapists.map((therapist, index) => renderTherapistCard(therapist, index))}
+              {replicatedTherapists.map((therapist, index) => (
+                <TherapistCard 
+                  key={`${therapist.id}-${index}`} 
+                  therapist={therapist} 
+                />
+              ))}
             </View>
 
+            {/* Load More Indicator */}
             {isLoadingMore && (
               <View style={styles.loadingMoreContainer}>
                 <ActivityIndicator size="small" color="#2196F3" />
@@ -330,8 +278,14 @@ export default function HomeScreen(): JSX.Element {
             )}
           </>
         )}
-
       </ScrollView>
+
+      {/* Sort Modal */}
+      <SortModal 
+        visible={sortVisible} 
+        onClose={() => setSortVisible(false)} 
+        onSelect={handleSortSelect} 
+      />
     </SafeAreaView>
   );
 }
@@ -380,25 +334,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-  },
-  topTherapistContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    gap: 4,
-  },
-  topTherapistContainerRTL: {
-    flexDirection: 'row-reverse',
-  },
-  topTherapistIcon: {
-    width: 20,
-    height: 20,
-    resizeMode: 'contain',
-  },
-  toptherapist: {
-    color: '#fcb045',
-    fontSize: 12,
-    fontWeight: '500',
   },
   appName: {
     fontSize: 18,
@@ -520,32 +455,32 @@ const styles = StyleSheet.create({
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 25,
+    paddingHorizontal: 55,
+    paddingVertical: 10,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#e5e5e5',
+    borderColor: '#60a899',
     backgroundColor: '#fff',
-    gap: 8,
+    gap: 5,
   },
   filterText: {
-    color: '#666',
-    fontSize: 14,
+    color: '#60a899',
+    fontSize: 12,
   },
   sortButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 25,
+    paddingHorizontal: 55,
+    paddingVertical: 10,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#e5e5e5',
+    borderColor: '#60a899',
     backgroundColor: '#fff',
-    gap: 8,
+    gap: 5,
   },
   sortText: {
-    color: '#2196F3',
-    fontSize: 14,
+    color: '#60a899',
+    fontSize: 12,
   },
   errorContainer: {
     backgroundColor: '#ffebee',
@@ -571,147 +506,6 @@ const styles = StyleSheet.create({
   therapistsList: {
     gap: 20,
     paddingBottom: 30,
-  },
-  therapistCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  therapistHeader: {
-    flexDirection: 'row',
-    marginBottom: 15,
-  },
-  therapistHeaderRTL: {
-    flexDirection: 'row-reverse',
-  },
-  therapistImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: 15,
-  },
-  therapistInfo: {
-    flex: 1,
-  },
-  therapistName: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#4d4d4f',
-    marginBottom: 4,
-    fontFamily: 'Montserrat',
-  },
-  therapistSpecialty: {
-    fontSize: 14,
-    color: '#2196F3',
-    marginBottom: 8,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  starsContainer: {
-    flexDirection: 'row',
-  },
-  starsContainerRTL: {
-    flexDirection: 'row-reverse',
-  },
-  sessionCount: {
-    fontSize: 12,
-    color: '#666',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  reviewText: {
-    fontSize: 12,
-    color: '#666',
-  },
-  interestsContainer: {
-    marginBottom: 15,
-  },
-  interestsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  interestsTags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  interestsTagsRTL: {
-    flexDirection: 'row-reverse',
-  },
-  interestTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 500,
-    backgroundColor: '#6cca871a',
-  },
-  interestText: {
-    fontSize: 12,
-    color: '#60a899',
-  },
-  appointmentInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
-  },
-  appointmentInfoRTL: {
-    flexDirection: 'row-reverse',
-  },
-  appointmentText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  pricingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    gap: 8,
-  },
-  pricingContainerRTL: {
-    flexDirection: 'row-reverse',
-  },
-  pricingText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  viewProfileButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  viewProfileText: {
-    color: '#4caf50',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  bookNowButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#2196F3',
-    alignItems: 'center',
-  },
-  bookNowText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
   },
   textRTL: {
     textAlign: 'right',
