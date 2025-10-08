@@ -1,6 +1,10 @@
 // networks/therapist/therapistDetailApi.ts
 
 import { therapistDetailResponseSerializer, TherapistDetail } from "../../serializers/therapistDetailSerilizer";
+import { API } from "../network/network";
+
+// Configuration flag to switch between real and dummy API
+const USE_DUMMY_API = true; // Set to false when you want to use real API
 
 // English therapist details data
 const englishTherapistDetails = [
@@ -220,24 +224,24 @@ const arabicTherapistDetails = [
   }
 ];
 
-// Dummy API with language support
-const dummyAPI = {
-  GET: async (therapistId: number, language: 'en' | 'ar' = 'en') => {
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    const dataSource = language === 'en' ? englishTherapistDetails : arabicTherapistDetails;
-    const data = dataSource.find(t => t.id === therapistId);
-    
-    if (!data) {
-      throw new Error("Therapist not found");
-    }
-    
-    return {
-      success: true,
-      data: data,
-    };
-  },
+// Dummy API for testing/development
+const fetchTherapistDetailDummy = async (therapistId: number, language: 'en' | 'ar' = 'en') => {
+  console.log("🔄 Using DUMMY API for therapist detail");
+  
+  // Simulate network delay
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  
+  const dataSource = language === 'en' ? englishTherapistDetails : arabicTherapistDetails;
+  const data = dataSource.find(t => t.id === therapistId);
+  
+  if (!data) {
+    throw new Error("Therapist not found");
+  }
+  
+  return {
+    success: true,
+    data: data,
+  };
 };
 
 /**
@@ -251,16 +255,39 @@ export const fetchTherapistDetail = async (
   try {
     console.log(`Fetching therapist detail for ID ${therapistId} in ${language} language...`);
     
-    const response = await dummyAPI.GET(therapistId, language);
-    
-    if (!response.success) {
-      throw new Error("Failed to fetch therapist detail");
+    // Use dummy API if flag is true
+    if (USE_DUMMY_API) {
+      const response = await fetchTherapistDetailDummy(therapistId, language);
+      
+      if (!response.success) {
+        throw new Error("Failed to fetch therapist detail");
+      }
+      
+      return therapistDetailResponseSerializer(response.data);
     }
+
+    // Real API implementation
+    const response = await API.GET({
+      URL: `therapists/${therapistId}`,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept-Language': language,
+      },
+      params: {
+        language: language,
+      },
+    });
     
     // ✅ Serialize the response so data is always normalized
     return therapistDetailResponseSerializer(response.data);
   } catch (e: any) {
     console.error("Error fetching therapist detail:", e);
-    throw new Error(e.message || "Unable to fetch therapist detail");
+    
+    const errorMessage = e.response?.data?.message || 
+                        e.response?.data?.error || 
+                        e.message || 
+                        "Unable to fetch therapist detail";
+    
+    throw new Error(errorMessage);
   }
 };

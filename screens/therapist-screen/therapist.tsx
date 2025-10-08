@@ -194,6 +194,7 @@ export default function TherapistScreen(): React.ReactElement {
                 {
                   marginRight: isRTL ? 0 : 6,
                   marginLeft: isRTL ? 6 : 0,
+                  fontSize: isRTL ? 14 : 13,
                 }
               ]}
             >
@@ -245,6 +246,7 @@ export default function TherapistScreen(): React.ReactElement {
                 {
                   marginRight: isRTL ? 0 : 6,
                   marginLeft: isRTL ? 6 : 0,
+                  fontSize: isRTL ? 14 : 13,
                 }
               ]}
             >
@@ -276,7 +278,7 @@ export default function TherapistScreen(): React.ReactElement {
             <View style={[styles.progressRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
               <Progress.Bar
                 progress={r.value / 5}
-                width={200}
+                width={300}
                 height={10}
                 color="#333"
                 unfilledColor="#e6e6e6"
@@ -396,8 +398,8 @@ export default function TherapistScreen(): React.ReactElement {
                 }
               ]}
             >
-              <View style={styles.timelineDot} />
-              {index !== arr.length - 1 && <View style={styles.timelineLine} />}
+              <View />
+              {index !== arr.length  && <View style={styles.timelineLine} />}
             </View>
             <View style={[
               styles.certificateTextWrap,
@@ -433,11 +435,12 @@ export default function TherapistScreen(): React.ReactElement {
                 {
                   marginRight: isRTL ? 0 : 12,
                   marginLeft: isRTL ? 12 : 0,
+              
                 }
               ]}
             >
-              <View style={styles.timelineDot} />
-              {index !== arr.length - 1 && <View style={styles.timelineLine} />}
+              <View  />
+              {index !== arr.length && <View style={styles.timelineLine} />}
             </View>
             <View style={[
               styles.certificateTextWrap,
@@ -595,7 +598,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 18,
     marginBottom: 8,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "500",
     color: "#60a899",
     backgroundColor: "#6cca871a",
@@ -703,14 +706,15 @@ const styles = StyleSheet.create({
     width: 16 
   },
   timelineDot: { 
-    width: 10, 
+    width: 0, 
     height: 10, 
     borderRadius: 5, 
     backgroundColor: "#0077cc" 
   },
   timelineLine: { 
-    flex: 1, 
-    width: 2, 
+    flex: 2, 
+    width: 4,
+    borderRadius: 50, 
     backgroundColor: "#0077cc", 
     marginTop: 2 
   },

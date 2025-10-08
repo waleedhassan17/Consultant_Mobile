@@ -1,127 +1,117 @@
 import React from "react";
 import { Modal, View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
+import { SortOption } from '../screens/home-screen/homeScreenSlice';
 
 interface SortModalProps {
   visible: boolean;
   onClose: () => void;
-  onSelect: (option: string) => void;
+  onSelect: (option: SortOption) => void;
 }
 
 const SortModal: React.FC<SortModalProps> = ({ visible, onClose, onSelect }) => {
+  const sortOptions: Array<{ label: string; value: SortOption }> = [
+    { label: "Fees (Low to High)", value: "price-low" as const },
+    { label: "Fees (High to Low)", value: "price-high" as const },
+    { label: "Top rated therapists", value: "rating" as const },
+    { label: "Most experienced", value: "sessions" as const },
+    { label: "Reset", value: "default" as const },
+  ];
+
   return (
     <Modal
-        animationType="slide"
-        transparent={true}
-        visible={visible}
-        onRequestClose={onClose}
+      animationType="slide"
+      transparent={true}
+      visible={visible}
+      onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.sortModal}>
+      <Pressable style={styles.modalOverlay} onPress={onClose}>
+        <Pressable style={styles.sortModal} onPress={(e) => e.stopPropagation()}>
           <View style={styles.sortRow}>
-          <Text style={styles.sortTitle}>Sort by</Text>
-          <Pressable 
-            style={styles.cancelButton} 
-            onPress={onClose}
-          >
-            <Ionicons name="close" size={18} color="#000" />
-          </Pressable>
+            <Text style={styles.sortTitle}>Sort by</Text>
+            <Pressable 
+              style={styles.cancelButton} 
+              onPress={onClose}
+            >
+              <Ionicons name="close" size={18} color="#000" />
+            </Pressable>
           </View>
-    
-          <Pressable 
-            style={styles.sortOption} 
-            onPress={() => {  onSelect("price"); onClose();}}
-          >
-            <Text style={styles.sortOptionText}>Fees (Low to High)</Text>
-            
-          </Pressable>
-    
-          <Pressable 
-            style={styles.sortOption} 
-            onPress={() => {  onSelect("price"); onClose();}}
-          >
-            <Text style={styles.sortOptionText}>Fees (High to Low)</Text>
-          </Pressable>
-    
-          <Pressable 
-            style={styles.sortOption} 
-            onPress={() => { onSelect("rating");onClose(); }}
-          >
-            <Text style={styles.sortOptionText}>Top rated therapists</Text>
-          </Pressable>
-          <Pressable 
-            style={styles.sortOption} 
-            onPress={() => { onSelect("sessions"); onClose(); }}
-          >
-            <Text style={styles.sortOptionText}>Reset</Text>
-          </Pressable>
-    
-          
-        </View>
-      </View>
+
+          {sortOptions.map((option, index) => (
+            <Pressable 
+              key={option.value}
+              style={[
+                styles.sortOption,
+                index === 0 && styles.firstOption,
+              ]} 
+              onPress={() => onSelect(option.value)}
+            >
+              <Text 
+                style={[
+                  styles.sortOptionText,
+                  option.value === "default" && styles.resetText
+                ]}
+              >
+                {option.label}
+              </Text>
+            </Pressable>
+          ))}
+        </Pressable>
+      </Pressable>
     </Modal>
-      );
-    };
-    
-    export default SortModal;
-    
-    const styles = StyleSheet.create({
-        
+  );
+};
+
+export default SortModal;
+
+const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
-    marginTop: 35,
-    fontFamily: "Montserrat-Regular",
   },
   sortModal: {
     backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    display: "flex",
-    // justifyContent: "center",
-    alignItems: "center",
+    paddingBottom: 30,
   },
   sortRow: {
     flexDirection: "row",
     justifyContent: "center",
-  marginLeft: 40,
-},
-
+    alignItems: "center",
+    marginBottom: 10,
+    position: "relative",
+  },
   sortTitle: {
     fontSize: 18,
     color: "#2196F3",
-    // borderBottomWidth: 1,
-    // borderBottomColor: "#eee",
-    paddingBottom: 12,
-    width: "80%",
+    fontWeight: "600",
     textAlign: "center",
-    // marginLeft: 45,
+    flex: 1,
+  },
+  cancelButton: {
+    position: "absolute",
+    right: 0,
+    padding: 4,
   },
   sortOption: {
-    paddingVertical: 12,
+    paddingVertical: 16,
     borderTopWidth: 1,
     borderTopColor: "#eee",
-  
     width: "100%",
-    
-    
+  },
+  firstOption: {
+    marginTop: 5,
   },
   sortOptionText: {
     fontSize: 16,
-    color: "#888",
+    color: "#333",
     textAlign: "center",
   },
-  cancelButton: {
-    marginLeft: 20,
-    paddingVertical: 1,
-    alignItems: "center",
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
-  },
-  cancelText: {
-    fontSize: 16,
-    color: "#111",
+  resetText: {
+    color: "#2196F3",
+    fontWeight: "600",
   },
 });

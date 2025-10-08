@@ -1,6 +1,6 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createAppSlice } from "../../store/createAppSlice";
-import { fetchTherapistDetail } from "../../networks/therapist/therapistProfile";
+import { fetchTherapistDetail } from "../../networks/Therapist/therapistProfile";
 import { TherapistDetail } from "../../serializers/therapistDetailSerilizer";
 import { Language } from "../../utils/language-storage/languageStorage";
 

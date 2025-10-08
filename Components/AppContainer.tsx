@@ -17,7 +17,7 @@ import {
   persistFcmTokenAction,
   setAppIsReady,
   selectIsAppReady,
-} from "./appContainerSlice";
+} from './appContainerSlice';
 
 import {
   KeyForStorage,

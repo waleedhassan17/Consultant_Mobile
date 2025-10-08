@@ -5,7 +5,7 @@ import { signInSlice } from "../screens/signin-screen/SignInSlice"
 import { signUpSlice } from "../screens/signup-screen/SignUpSlice";
 import { logoutSlice } from "../screens/logout-screen/logoutSlice";
 import { therapistSlice } from "../screens/therapist-screen/therapistSlice";
-import { appContainerSlice } from "../components/appContainerSlice";
+import { appContainerSlice } from "../Components/appContainerSlice";
 
 export const store = configureStore({
   reducer: {

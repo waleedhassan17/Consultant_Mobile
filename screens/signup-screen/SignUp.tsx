@@ -40,8 +40,8 @@ import {
   clearError,
   submitSignUpAsync,
 } from './SignUpSlice';
-import CustomInput from '../../custom-components/CustomInput';
-import AppLogo from '../../custom-components/AppLogo';
+import CustomInput from '../../Custom-Components/CustomInput';
+import AppLogo from '../../Custom-Components/AppLogo';
 
 const SignUp = () => {
   const navigation = useNavigation();

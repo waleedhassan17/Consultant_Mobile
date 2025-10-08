@@ -24,7 +24,7 @@ AxiosInstance.interceptors.response.use(
 
     if (error.response && error.response.status === 401) {
       const { logout } = await import(
-        "../../components/appContainerSlice"
+        "../../Components/appContainerSlice"
       );
       const { store } = await import("../../store/store");
 
