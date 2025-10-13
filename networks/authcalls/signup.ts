@@ -1,4 +1,4 @@
-import { signUpPayload } from "../../models/auth";
+import { signUpPayload } from "../../models/user";
 import { NotificationService } from "../../notifications/notificationHandler";
 import { API } from "../network/network"; // Import the API object with axios
 

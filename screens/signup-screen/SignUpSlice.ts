@@ -6,7 +6,7 @@ import {
   signUpPayload, 
   UserTypeValue, 
   GenderValue 
-} from "../../models/auth";
+} from "../../models/user";
 import {
   KeyForStorage,
   saveData,

@@ -1,4 +1,4 @@
-import { signInPayload } from "../../models/auth";
+import { signInPayload } from "../../models/user";
 import { NotificationService } from "../../notifications/notificationHandler";
 import { API } from "../network/network";
 

@@ -1,6 +1,8 @@
 // networks/therapist/therapistDetailApi.ts
-
-import { therapistDetailResponseSerializer, TherapistDetail } from "../../serializers/therapistDetailSerilizer";
+import { TherapistDetail } from "../../models/therapist";
+import { 
+  therapistDetailResponseSerializer 
+} from "../../serializers/therapistSerializer";
 import { API } from "../network/network";
 
 // Configuration flag to switch between real and dummy API
@@ -11,10 +13,17 @@ const englishTherapistDetails = [
   {
     id: 1,
     name: "Dr. John Doe",
+    specialty: "Psychiatrist", 
     profession: "Psychiatrist",
     rating: 4.9,
+    reviewCount: 85, 
     totalReviews: 85,
+    sessions: "400", 
+    price60: "120 USD", 
+    price30: "65 USD", 
+    nextAppointment: "Monday, Oct. 21 at 9:00 PM", 
     isTopTherapist: true,
+    image: require("../../assets/profile.jpg"), 
     profileImage: require("../../assets/profile.jpg"),
     tags: ["Depression", "Anxiety"],
     interests: ["Depression", "Anxiety", "Stress Management", "PTSD"],
@@ -46,10 +55,17 @@ const englishTherapistDetails = [
   {
     id: 2,
     name: "Dr. Jane Smith",
+    specialty: "Clinical Psychologist", 
     profession: "Clinical Psychologist",
     rating: 4.8,
+    reviewCount: 65, 
     totalReviews: 65,
+    sessions: "300", 
+    price60: "110 USD", 
+    price30: "55 USD",
+    nextAppointment: "Tuesday, Oct. 22 at 6:00 PM", 
     isTopTherapist: true,
+    image: require("../../assets/profile2.jpg"), 
     profileImage: require("../../assets/profile2.jpg"),
     tags: ["Relationships", "Stress"],
     interests: ["Relationships", "Stress", "Self-Esteem", "Work-Life Balance"],
@@ -81,10 +97,17 @@ const englishTherapistDetails = [
   {
     id: 3,
     name: "Dr. Michael Brown",
+    specialty: "Marriage Counselor", 
     profession: "Marriage Counselor",
     rating: 4.7,
+    reviewCount: 120, 
     totalReviews: 120,
+    sessions: "500", 
+    price60: "100 USD", 
+    price30: "50 USD", 
+    nextAppointment: "Wednesday, Oct. 23 at 3:00 PM", 
     isTopTherapist: false,
+    image: require("../../assets/profile.jpg"), 
     profileImage: require("../../assets/profile.jpg"),
     tags: ["Marriage Issues", "Family Therapy"],
     interests: ["Marriage Issues", "Family Therapy", "Communication", "Parenting"],
@@ -120,10 +143,17 @@ const arabicTherapistDetails = [
   {
     id: 1,
     name: "د. أحمد محمود",
+    specialty: "طبيب نفسي", 
     profession: "طبيب نفسي",
     rating: 4.9,
+    reviewCount: 85, 
     totalReviews: 85,
+    sessions: "400", 
+    price60: "120 دولار", 
+    price30: "65 دولار",
+    nextAppointment: "الاثنين، 21 أكتوبر الساعة 9:00 مساءً", 
     isTopTherapist: true,
+    image: require("../../assets/profile.jpg"), 
     profileImage: require("../../assets/profile.jpg"),
     tags: ["الاكتئاب", "القلق"],
     interests: ["الاكتئاب", "القلق", "إدارة الضغط النفسي", "اضطراب ما بعد الصدمة"],
@@ -155,10 +185,17 @@ const arabicTherapistDetails = [
   {
     id: 2,
     name: "د. سارة علي",
+    specialty: "أخصائية نفسية إكلينيكية", 
     profession: "أخصائية نفسية إكلينيكية",
     rating: 4.8,
+    reviewCount: 65, 
     totalReviews: 65,
+    sessions: "300", 
+    price60: "110 دولار", 
+    price30: "55 دولار", 
+    nextAppointment: "الثلاثاء، 22 أكتوبر الساعة 6:00 مساءً", 
     isTopTherapist: true,
+    image: require("../../assets/profile2.jpg"), 
     profileImage: require("../../assets/profile2.jpg"),
     tags: ["العلاقات", "الضغط النفسي"],
     interests: ["العلاقات", "الضغط النفسي", "تقدير الذات", "التوازن بين العمل والحياة"],
@@ -190,10 +227,17 @@ const arabicTherapistDetails = [
   {
     id: 3,
     name: "د. محمد حسن",
+    specialty: "مستشار زواج", 
     profession: "مستشار زواج",
     rating: 4.7,
+    reviewCount: 120, 
     totalReviews: 120,
+    sessions: "500", 
+    price60: "100 دولار", 
+    price30: "50 دولار", 
+    nextAppointment: "الأربعاء، 23 أكتوبر الساعة 3:00 مساءً", 
     isTopTherapist: false,
+    image: require("../../assets/profile.jpg"), 
     profileImage: require("../../assets/profile.jpg"),
     tags: ["مشاكل الزواج", "العلاج الأسري"],
     interests: ["مشاكل الزواج", "العلاج الأسري", "التواصل", "تربية الأطفال"],
@@ -245,7 +289,7 @@ const fetchTherapistDetailDummy = async (therapistId: number, language: 'en' | '
 };
 
 /**
- * ✅ Fetch therapist detail with language support
+ * Fetch therapist detail with language support
  * Uses serializer to normalize data - works with both dummy and real APIs
  */
 export const fetchTherapistDetail = async (
@@ -278,7 +322,7 @@ export const fetchTherapistDetail = async (
       },
     });
     
-    // ✅ Serialize the response so data is always normalized
+    //  Serialize the response so data is always normalized
     return therapistDetailResponseSerializer(response.data);
   } catch (e: any) {
     console.error("Error fetching therapist detail:", e);

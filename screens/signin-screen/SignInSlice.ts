@@ -1,7 +1,7 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createAppSlice } from "../../store/createAppSlice";
 import { authLogin } from "../../networks/authcalls/signin";
-import { signInSliceState, UserTypeValue, signInPayload } from "../../models/auth";
+import { signInSliceState, UserTypeValue, signInPayload } from "../../models/user";
 import {
   KeyForStorage,
   saveData,

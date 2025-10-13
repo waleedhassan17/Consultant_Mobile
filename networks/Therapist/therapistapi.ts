@@ -2,10 +2,9 @@ import { therapistResponseSerializer } from "../../serializers/therapistSerializ
 import { Therapist } from "../../models/therapist";
 import { API } from "../network/network";
 
-// Configuration flag to switch between real and dummy API
 const USE_DUMMY_API = true; // Set to false when you want to use real API
 
-// English API Data
+
 const englishTherapistsData = [
   {
     id: 1,
@@ -48,7 +47,7 @@ const englishTherapistsData = [
   },
 ];
 
-// Arabic API Data
+
 const arabicTherapistsData = [
   {
     id: 1,
@@ -118,7 +117,7 @@ export const fetchTherapists = async (language: 'en' | 'ar' = 'en'): Promise<The
         throw new Error("Failed to fetch therapists");
       }
 
-      // ✅ Serialize each therapist so data is always normalized
+      // Serialize each therapist so data is always normalized
       return response.data.map((t: any) => therapistResponseSerializer(t));
     }
 
