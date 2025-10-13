@@ -1,12 +1,109 @@
 // networks/therapist/therapistDetailApi.ts
-import { TherapistDetail } from "../../models/therapist";
-import { 
-  therapistDetailResponseSerializer 
-} from "../../serializers/therapistSerializer";
-import { API } from "../network/network";
+import { NotificationService } from "../../notifications/notificationHandler";
+import { API_URL, API } from "../network/network";
 
-// Configuration flag to switch between real and dummy API
-const USE_DUMMY_API = true; // Set to false when you want to use real API
+/**
+ * Fetch therapist detail - returns raw API response
+ * Serialization happens in the slice, not here
+ * 
+ * IMPORTANT: Remove therapistDetailResponseSerializer from here!
+ * Just return raw response - serialization happens in slice fulfilled action
+ */
+export const fetchTherapistDetail = async (
+  therapistId: number, 
+  language: 'en' | 'ar' = 'en'
+): Promise<any> => {
+  try {
+    const response = await fetch(`${API_URL}therapists/${therapistId}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Accept-Language": language,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    // Return raw data - NO serialization here
+    return data;
+  } catch (e: any) {
+    await NotificationService.sendImmediateNotification({
+      title: "❌ Error",
+      body: "Failed to fetch therapist details",
+      data: { type: 'fetch_error' },
+      channelId: 'api-notifications'
+    });
+    throw e;
+  }
+};
+
+/**
+ * Fetch therapist list - returns raw API response
+ */
+export const fetchTherapistList = async (
+  language: 'en' | 'ar' = 'en',
+  params?: any
+): Promise<any> => {
+  try {
+    const response = await API.GET({
+      URL: "therapists",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Accept-Language": language,
+      },
+      params: {
+        language: language,
+        ...params,
+      },
+    });
+
+    return response.data;
+  } catch (e: any) {
+    await NotificationService.sendImmediateNotification({
+      title: "❌ Error",
+      body: "Failed to fetch therapist list",
+      data: { type: 'fetch_error' },
+      channelId: 'api-notifications'
+    });
+    throw e;
+  }
+};
+
+/**
+ * Book appointment - POST request example
+ */
+export const bookTherapistAppointment = async (
+  therapistId: number,
+  appointmentData: any
+): Promise<any> => {
+  try {
+    const response = await API.POST({
+      URL: `therapists/${therapistId}/appointments`,
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      data: appointmentData,
+    });
+
+    return response.data;
+  } catch (e: any) {
+    await NotificationService.sendImmediateNotification({
+      title: "❌ Booking Failed",
+      body: "Failed to book appointment",
+      data: { type: 'booking_error' },
+      channelId: 'api-notifications'
+    });
+    throw e;
+  }
+};
+
+// ==================== DUMMY DATA (for testing) ====================
 
 // English therapist details data
 const englishTherapistDetails = [
@@ -268,12 +365,16 @@ const arabicTherapistDetails = [
   }
 ];
 
-// Dummy API for testing/development
-const fetchTherapistDetailDummy = async (therapistId: number, language: 'en' | 'ar' = 'en') => {
-  console.log("🔄 Using DUMMY API for therapist detail");
-  
+/**
+ * DUMMY API - for testing without real backend
+ * Remove this when connecting to real API
+ */
+export const fetchTherapistDetailDummy = async (
+  therapistId: number, 
+  language: 'en' | 'ar' = 'en'
+): Promise<any> => {
   // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 800));
   
   const dataSource = language === 'en' ? englishTherapistDetails : arabicTherapistDetails;
   const data = dataSource.find(t => t.id === therapistId);
@@ -282,56 +383,5 @@ const fetchTherapistDetailDummy = async (therapistId: number, language: 'en' | '
     throw new Error("Therapist not found");
   }
   
-  return {
-    success: true,
-    data: data,
-  };
-};
-
-/**
- * Fetch therapist detail with language support
- * Uses serializer to normalize data - works with both dummy and real APIs
- */
-export const fetchTherapistDetail = async (
-  therapistId: number, 
-  language: 'en' | 'ar' = 'en'
-): Promise<TherapistDetail> => {
-  try {
-    console.log(`Fetching therapist detail for ID ${therapistId} in ${language} language...`);
-    
-    // Use dummy API if flag is true
-    if (USE_DUMMY_API) {
-      const response = await fetchTherapistDetailDummy(therapistId, language);
-      
-      if (!response.success) {
-        throw new Error("Failed to fetch therapist detail");
-      }
-      
-      return therapistDetailResponseSerializer(response.data);
-    }
-
-    // Real API implementation
-    const response = await API.GET({
-      URL: `therapists/${therapistId}`,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept-Language': language,
-      },
-      params: {
-        language: language,
-      },
-    });
-    
-    //  Serialize the response so data is always normalized
-    return therapistDetailResponseSerializer(response.data);
-  } catch (e: any) {
-    console.error("Error fetching therapist detail:", e);
-    
-    const errorMessage = e.response?.data?.message || 
-                        e.response?.data?.error || 
-                        e.message || 
-                        "Unable to fetch therapist detail";
-    
-    throw new Error(errorMessage);
-  }
+  return data;
 };

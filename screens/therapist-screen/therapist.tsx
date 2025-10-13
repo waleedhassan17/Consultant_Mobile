@@ -55,14 +55,14 @@ export default function TherapistScreen(): React.ReactElement {
 
   // Load therapist data when component mounts or language/therapistId changes
   useEffect(() => {
-    dispatch(loadTherapistDetail(therapistId, language));
+  dispatch(loadTherapistDetail({ therapistId, language }));
   }, [dispatch, therapistId, language]);
 
   // Pull to refresh handler
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await dispatch(loadTherapistDetail(therapistId, language));
+    dispatch(loadTherapistDetail({ therapistId, language }));
     } catch (error) {
       console.error('Refresh error:', error);
     } finally {
@@ -79,7 +79,7 @@ export default function TherapistScreen(): React.ReactElement {
   };
 
   const handleRetry = () => {
-    dispatch(loadTherapistDetail(therapistId, language));
+  dispatch(loadTherapistDetail({ therapistId, language }));
   };
 
   // Show loading state

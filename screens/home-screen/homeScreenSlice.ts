@@ -2,6 +2,7 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 import { createAppSlice } from "../../store/createAppSlice";
 import { Therapist } from "../../models/therapist";
 import { fetchTherapists } from "../../networks/therapist/therapistapi";
+import { therapistResponseSerializer } from "../../serializers/therapistSerializer";
 import { LanguageStorage, Language } from "../../utils/language-storage/languageStorage";
 
 export type SortOption = "default" | "price-low" | "price-high" | "rating" | "sessions";
@@ -76,6 +77,42 @@ export const homeScreenSlice = createAppSlice({
     setTherapists: create.reducer((state, action: PayloadAction<Therapist[]>) => {
       state.therapists = action.payload;
     }),
+    // Async thunk for loading therapists
+    loadTherapists: create.asyncThunk(
+      async (language: Language | undefined, { getState }) => {
+        const state = getState() as { homeScreen: HomeScreenState };
+        // Use provided language or get from state
+        const lang = language || state.homeScreen.language;
+        
+        // Just call API and return raw response
+        return await fetchTherapists(lang);
+      },
+      {
+        pending: (state) => {
+          state.loading = true;
+          state.error = null;
+        },
+        fulfilled: (state, action: PayloadAction<any[]>) => {
+          // Serialize HERE in fulfilled
+          const serializedTherapists = action.payload.map((t: any) => 
+            therapistResponseSerializer(t)
+          );
+          
+          state.therapists = serializedTherapists;
+          state.loading = false;
+          console.log(`Loaded ${serializedTherapists.length} therapists`);
+        },
+        rejected: (state, action) => {
+          state.loading = false;
+          state.error = action.error.message || "Failed to load therapists";
+          console.error("Failed to fetch therapists:", action.error);
+          
+          // Keep existing therapists if any (for refresh scenarios)
+          // Otherwise leave empty array - let UI handle empty state properly
+          // state.therapists = []; // Not needed, keeps existing state
+        },
+      }
+    ),
   }),
 
   selectors: {
@@ -116,6 +153,7 @@ export const {
   setLanguage,
   setLanguageLoaded,
   setSortOption,
+  loadTherapists, //  Export the async thunk
 } = homeScreenSlice.actions;
 
 export const {
@@ -135,8 +173,7 @@ export const {
 export default homeScreenSlice.reducer;
 
 /**
- * ✅ Thunk to initialize language from AsyncStorage
- * The LanguageStorage service automatically saves 'en' if nothing is stored
+ * Thunk to initialize language from AsyncStorage
  */
 export const initializeLanguage = () => async (dispatch: any) => {
   try {
@@ -146,7 +183,6 @@ export const initializeLanguage = () => async (dispatch: any) => {
     console.log(`Initialized language: ${savedLanguage}`);
   } catch (error) {
     console.error('Failed to initialize language:', error);
-    // Fallback to English and try to save it
     try {
       await LanguageStorage.saveLanguage('en');
     } catch (saveError) {
@@ -158,7 +194,7 @@ export const initializeLanguage = () => async (dispatch: any) => {
 };
 
 /**
- * ✅ Thunk to toggle language and persist to AsyncStorage
+ *  Thunk to toggle language and persist to AsyncStorage
  */
 export const toggleLanguage = () => async (dispatch: any, getState: any) => {
   try {
@@ -177,52 +213,5 @@ export const toggleLanguage = () => async (dispatch: any, getState: any) => {
     console.log(`Language toggled to: ${newLanguage}`);
   } catch (error) {
     console.error('Failed to toggle language:', error);
-  }
-};
-
-/**
- * ✅ Thunk to fetch therapists from API with language support
- */
-export const loadTherapists = (language?: Language) => async (dispatch: any, getState: any) => {
-  try {
-    dispatch(setLoading(true));
-    dispatch(setError(null));
-    
-    // Use provided language or get from state
-    const lang = language || selectLanguage(getState());
-    
-    const data = await fetchTherapists(lang);
-
-    console.log(`Fetched ${data.length} therapists in ${lang}`);
-
-    if (!data || data.length === 0) {
-      throw new Error("No therapists returned from API");
-    }
-
-    dispatch(setTherapists(data));
-  } catch (error: any) {
-    console.error("Failed to fetch therapists:", error);
-    dispatch(setError(error.message || "Failed to load therapists"));
-
-    // ✅ Fallback
-    dispatch(
-      setTherapists([
-        {
-          id: 1,
-          name: "Fallback Therapist",
-          specialty: "Psychiatrist",
-          rating: 4.8,
-          reviewCount: 12,
-          sessions: "200",
-          interests: ["Stress", "Anxiety"],
-          nextAppointment: "Tomorrow at 5:00 PM",
-          price60: "99 USD",
-          price30: "50 USD",
-          image: require("../../assets/profile.jpg"),
-        },
-      ])
-    );
-  } finally {
-    dispatch(setLoading(false));
   }
 };

@@ -1,9 +1,7 @@
-import { therapistResponseSerializer } from "../../serializers/therapistSerializer";
 import { Therapist } from "../../models/therapist";
 import { API } from "../network/network";
 
 const USE_DUMMY_API = true; // Set to false when you want to use real API
-
 
 const englishTherapistsData = [
   {
@@ -46,7 +44,6 @@ const englishTherapistsData = [
     image: require("../../assets/profile.jpg"),
   },
 ];
-
 
 const arabicTherapistsData = [
   {
@@ -105,7 +102,11 @@ const fetchTherapistsDummy = async (language: 'en' | 'ar' = 'en') => {
   };
 };
 
-export const fetchTherapists = async (language: 'en' | 'ar' = 'en'): Promise<Therapist[]> => {
+/**
+ * ✅ Fetch therapists - returns RAW API response
+ * NO serialization here - that happens in the slice
+ */
+export const fetchTherapists = async (language: 'en' | 'ar' = 'en'): Promise<any> => {
   try {
     console.log(`Fetching therapists in ${language} language...`);
     
@@ -117,8 +118,8 @@ export const fetchTherapists = async (language: 'en' | 'ar' = 'en'): Promise<The
         throw new Error("Failed to fetch therapists");
       }
 
-      // Serialize each therapist so data is always normalized
-      return response.data.map((t: any) => therapistResponseSerializer(t));
+      // ✅ Return raw data - NO serialization
+      return response.data;
     }
 
     // Real API implementation
@@ -137,8 +138,8 @@ export const fetchTherapists = async (language: 'en' | 'ar' = 'en'): Promise<The
       throw new Error("Failed to fetch therapists");
     }
 
-    // ✅ Serialize each therapist so data is always normalized
-    return response.data.map((t: any) => therapistResponseSerializer(t));
+    // ✅ Return raw data - NO serialization
+    return response.data;
   } catch (e: any) {
     console.error("Error fetching therapists:", e);
     

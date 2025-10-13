@@ -2,6 +2,7 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 import { createAppSlice } from "../../store/createAppSlice";
 import { fetchTherapistDetail } from "../../networks/therapist/therapistProfile";
 import { TherapistDetail } from "../../models/therapist";
+import { therapistDetailResponseSerializer } from "../../serializers/therapistSerializer";
 import { Language } from "../../utils/language-storage/languageStorage";
 
 interface TherapistSliceState {
@@ -9,6 +10,7 @@ interface TherapistSliceState {
   currentCommentIndex: number;
   status: "idle" | "loading" | "failed";
   error: string | null;
+  hasLoaded: boolean;
 }
 
 const initialState: TherapistSliceState = {
@@ -16,6 +18,7 @@ const initialState: TherapistSliceState = {
   currentCommentIndex: 0,
   status: "idle",
   error: null,
+  hasLoaded: false,
 };
 
 export const therapistSlice = createAppSlice({
@@ -41,6 +44,35 @@ export const therapistSlice = createAppSlice({
           : state.currentCommentIndex - 1;
       }
     }),
+    loadTherapistDetail: create.asyncThunk(
+      async ({ 
+        therapistId, 
+        language = 'en' 
+      }: { 
+        therapistId: number; 
+        language?: 'en' | 'ar' 
+      }) => {
+        // Just call API and return raw response
+        return await fetchTherapistDetail(therapistId, language);
+      },
+      {
+        pending: (state) => {
+          state.status = "loading";
+          state.error = null;
+        },
+        fulfilled: (state, action: PayloadAction<any>) => {
+          // Serialize HERE in fulfilled
+          state.therapistData = therapistDetailResponseSerializer(action.payload);
+          state.currentCommentIndex = 0;
+          state.status = "idle";
+          state.hasLoaded = true;
+        },
+        rejected: (state, action) => {
+          state.status = "failed";
+          state.error = action.error.message || "Failed to load therapist detail";
+        },
+      }
+    ),
     setTherapistData: create.reducer((state, action: PayloadAction<TherapistDetail>) => {
       state.therapistData = action.payload;
       state.currentCommentIndex = 0; 
@@ -55,6 +87,12 @@ export const therapistSlice = createAppSlice({
       state.status = "failed";
     }),
     clearError: create.reducer((state) => {
+      state.error = null;
+      state.status = "idle";
+    }),
+    resetTherapistData: create.reducer((state) => {
+      state.therapistData = null;
+      state.currentCommentIndex = 0;
       state.error = null;
       state.status = "idle";
     }),
@@ -82,19 +120,24 @@ export const therapistSlice = createAppSlice({
     selectStatus: (state) => state.status,
     selectError: (state) => state.error,
     selectIsLoading: (state) => state.status === "loading",
+    selectHasLoaded: (state) => state.hasLoaded,
   },
 });
 
+// Export actions - the key is to destructure from therapistSlice.actions
 export const {
   setCurrentCommentIndex,
   nextComment,
   prevComment,
-  setTherapistData,
   clearError,
+  setTherapistData,
   setLoading,
   setError,
+  resetTherapistData,
+  loadTherapistDetail, // ⭐ Make sure this is included here
 } = therapistSlice.actions;
 
+// Export selectors
 export const {
   selectTherapistData,
   selectCurrentCommentIndex,
@@ -112,45 +155,5 @@ export const {
   selectStatus,
   selectError,
   selectIsLoading,
+  selectHasLoaded,
 } = therapistSlice.selectors;
-
-/**
- * ✅ Thunk to load therapist detail with language support
- * No need for fallback data - the serializer handles data normalization
- */
-export const loadTherapistDetail = (therapistId: number, language?: Language) => async (dispatch: any, getState: any) => {
-  try {
-    dispatch(setLoading(true));
-    dispatch(clearError());
-    
-    // Use provided language or default to 'en'
-    const lang = language || 'en';
-    
-    console.log(`Loading therapist ${therapistId} in ${lang}`);
-    
-    // ✅ The API call returns serialized data - no additional processing needed
-    const data = await fetchTherapistDetail(therapistId, lang);
-
-    console.log(`Fetched therapist data for ID ${therapistId}`);
-
-    if (!data) {
-      throw new Error(lang === 'ar' 
-        ? "لم يتم إرجاع بيانات المعالج من API" 
-        : "No therapist data returned from API"
-      );
-    }
-
-    dispatch(setTherapistData(data));
-  } catch (error: any) {
-    console.error("Failed to fetch therapist:", error);
-    const lang = language || 'en';
-    
-    dispatch(setError(
-      error.message || (lang === 'ar' 
-        ? "فشل في تحميل ملف المعالج" 
-        : "Failed to load therapist profile")
-    ));
-  } finally {
-    dispatch(setLoading(false));
-  }
-};
