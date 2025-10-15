@@ -92,7 +92,7 @@ export const signInSlice = createAppSlice({
           state.error = "";
         },
         fulfilled: (state, action) => {
-          console.log("✅ Sign in fulfilled with payload:", JSON.stringify(action.payload, null, 2));
+          console.log(" Sign in fulfilled with payload:", JSON.stringify(action.payload, null, 2));
           
           state.status = "idle";
           state.user = action.payload.user;

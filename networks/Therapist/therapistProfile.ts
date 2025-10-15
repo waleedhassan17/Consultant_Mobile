@@ -2,13 +2,7 @@
 import { NotificationService } from "../../notifications/notificationHandler";
 import { API_URL, API } from "../network/network";
 
-/**
- * Fetch therapist detail - returns raw API response
- * Serialization happens in the slice, not here
- * 
- * IMPORTANT: Remove therapistDetailResponseSerializer from here!
- * Just return raw response - serialization happens in slice fulfilled action
- */
+
 export const fetchTherapistDetail = async (
   therapistId: number, 
   language: 'en' | 'ar' = 'en'

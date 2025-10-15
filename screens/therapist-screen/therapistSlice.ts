@@ -1,6 +1,7 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createAppSlice } from "../../store/createAppSlice";
 import { fetchTherapistDetail } from "../../networks/therapist/therapistProfile";
+import { fetchTherapistDetailDummy } from "../../networks/therapist/therapistProfile";
 import { TherapistDetail } from "../../models/therapist";
 import { therapistDetailResponseSerializer } from "../../serializers/therapistSerializer";
 import { Language } from "../../utils/language-storage/languageStorage";
@@ -53,7 +54,7 @@ export const therapistSlice = createAppSlice({
         language?: 'en' | 'ar' 
       }) => {
         // Just call API and return raw response
-        return await fetchTherapistDetail(therapistId, language);
+        return await fetchTherapistDetailDummy(therapistId, language);
       },
       {
         pending: (state) => {
@@ -134,7 +135,7 @@ export const {
   setLoading,
   setError,
   resetTherapistData,
-  loadTherapistDetail, // ⭐ Make sure this is included here
+  loadTherapistDetail, // Make sure this is included here
 } = therapistSlice.actions;
 
 // Export selectors

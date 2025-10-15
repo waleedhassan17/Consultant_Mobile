@@ -11,7 +11,7 @@ import {
   selectSearchQuery, selectTherapists, selectLoading, 
   selectError, toggleLanguage, selectLanguage,
   initializeLanguage, selectLanguageLoaded, setSortOption,
-  selectSortOption
+  selectSortOption, SortOption,
 } from './homeScreenSlice';
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -119,10 +119,10 @@ export default function HomeScreen(): JSX.Element {
     dispatch(setSearchQuery(text));
   };
 
-  const handleSortSelect = (option: string): void => {
-    dispatch(setSortOption(option));
-    setSortVisible(false);
-  };
+const handleSortSelect = (option: SortOption): void => {
+  dispatch(setSortOption(option));
+  setSortVisible(false);
+};
 
   // Show loading while language is being initialized
   if (!languageLoaded) {
