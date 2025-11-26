@@ -1,152 +1,81 @@
+// networks/therapist/therapistApi.ts
 import { Therapist } from "../../models/therapist";
-import { API } from "../network/network";
-
-const USE_DUMMY_API = true; // Set to false when you want to use real API
-
-const englishTherapistsData = [
-  {
-    id: 1,
-    name: "Dr. John Doe",
-    specialty: "Psychiatrist",
-    rating: 4.9,
-    reviewCount: 85,
-    sessions: "400",
-    interests: ["Depression", "Anxiety", "Stress Management"],
-    nextAppointment: "Monday, Oct. 21 at 9:00 PM",
-    price60: "120 USD",
-    price30: "65 USD",
-    image: require("../../assets/profile.jpg"),
-  },
-  {
-    id: 2,
-    name: "Dr. Jane Smith",
-    specialty: "Clinical Psychologist",
-    rating: 4.8,
-    reviewCount: 65,
-    sessions: "300",
-    interests: ["Relationships", "Stress", "Self-Esteem"],
-    nextAppointment: "Tuesday, Oct. 22 at 6:00 PM",
-    price60: "110 USD",
-    price30: "55 USD",
-    image: require("../../assets/profile2.jpg"),
-  },
-  {
-    id: 3,
-    name: "Dr. Michael Brown",
-    specialty: "Marriage Counselor",
-    rating: 4.7,
-    reviewCount: 120,
-    sessions: "500",
-    interests: ["Marriage Issues", "Family Therapy", "Communication"],
-    nextAppointment: "Wednesday, Oct. 23 at 3:00 PM",
-    price60: "100 USD",
-    price30: "50 USD",
-    image: require("../../assets/profile.jpg"),
-  },
-];
-
-const arabicTherapistsData = [
-  {
-    id: 1,
-    name: "د. أحمد محمود",
-    specialty: "طبيب نفسي",
-    rating: 4.9,
-    reviewCount: 85,
-    sessions: "400",
-    interests: ["الاكتئاب", "القلق", "إدارة الضغط النفسي"],
-    nextAppointment: "الاثنين، 21 أكتوبر الساعة 9:00 مساءً",
-    price60: "120 دولار",
-    price30: "65 دولار",
-    image: require("../../assets/profile.jpg"),
-  },
-  {
-    id: 2,
-    name: "د. سارة علي",
-    specialty: "أخصائية نفسية إكلينيكية",
-    rating: 4.8,
-    reviewCount: 65,
-    sessions: "300",
-    interests: ["العلاقات", "الضغط النفسي", "تقدير الذات"],
-    nextAppointment: "الثلاثاء، 22 أكتوبر الساعة 6:00 مساءً",
-    price60: "110 دولار",
-    price30: "55 دولار",
-    image: require("../../assets/profile2.jpg"),
-  },
-  {
-    id: 3,
-    name: "د. محمد حسن",
-    specialty: "مستشار زواج",
-    rating: 4.7,
-    reviewCount: 120,
-    sessions: "500",
-    interests: ["مشاكل الزواج", "العلاج الأسري", "التواصل"],
-    nextAppointment: "الأربعاء، 23 أكتوبر الساعة 3:00 مساءً",
-    price60: "100 دولار",
-    price30: "50 دولار",
-    image: require("../../assets/profile.jpg"),
-  },
-];
-
-// Dummy API for testing/development
-const fetchTherapistsDummy = async (language: 'en' | 'ar' = 'en') => {
-  console.log("🔄 Using DUMMY API for therapists list");
-  
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  
-  const data = language === 'en' ? englishTherapistsData : arabicTherapistsData;
-  
-  return {
-    success: true,
-    data: data,
-  };
-};
+import { NotificationService } from "../../notifications/notificationHandler";
+import { TherapistAPI } from "../network/network";
 
 /**
- * ✅ Fetch therapists - returns RAW API response
- * NO serialization here - that happens in the slice
+ * ✅ Fetch therapists - returns array of therapists with images and related data
+ * Handles nested API response structure
  */
-export const fetchTherapists = async (language: 'en' | 'ar' = 'en'): Promise<any> => {
+export const fetchTherapists = async (language: 'en' | 'ar' = 'en'): Promise<any[]> => {
   try {
-    console.log(`Fetching therapists in ${language} language...`);
+    console.log(`📋 Fetching therapists in ${language} language...`);
     
-    // Use dummy API if flag is true
-    if (USE_DUMMY_API) {
-      const response = await fetchTherapistsDummy(language);
-
-      if (!response.success) {
-        throw new Error("Failed to fetch therapists");
-      }
-
-      // ✅ Return raw data - NO serialization
-      return response.data;
-    }
-
-    // Real API implementation
-    const response = await API.GET({
-      URL: "therapists",
+    const response = await TherapistAPI.GET({
+      URL: "api/v2/storefront/products",
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         'Accept-Language': language,
       },
       params: {
         language: language,
+        include: 'images,variants,product_properties,taxons,option_types'
       },
     });
 
-    if (!response.data) {
-      throw new Error("Failed to fetch therapists");
+    // ✅ Handle nested response structure
+    if (!response || !response.data) {
+      console.error("❌ Invalid response structure:", response);
+      throw new Error("Invalid API response");
     }
 
-    // ✅ Return raw data - NO serialization
-    return response.data;
-  } catch (e: any) {
-    console.error("Error fetching therapists:", e);
+    // Extract the actual therapist array from nested structure
+    // Check multiple possible structures
+    const therapistData = response.data.data || 
+                         response.data.products || 
+                         response.data.therapists ||
+                         response.data;
+
+    // Ensure we have an array
+    if (!Array.isArray(therapistData)) {
+      console.error("❌ API did not return an array:", therapistData);
+      console.log("Full response:", JSON.stringify(response, null, 2));
+      throw new Error("API response is not an array");
+    }
+
+    console.log(`✅ Therapists fetched successfully: ${therapistData.length} items`);
+    console.log('✅ Each therapist includes:', {
+      hasImages: therapistData.length > 0 && !!therapistData[0].images,
+      hasVariants: therapistData.length > 0 && !!therapistData[0].variants,
+      hasProperties: therapistData.length > 0 && !!therapistData[0].product_properties,
+      hasTaxons: therapistData.length > 0 && !!therapistData[0].taxons,
+      hasOptionTypes: therapistData.length > 0 && !!therapistData[0].option_types
+    });
     
-    const errorMessage = e.response?.data?.message || 
-                        e.response?.data?.error || 
-                        e.message || 
+    // Return the array
+    return therapistData;
+    
+  } catch (e: any) {
+    console.error("❌ Error fetching therapists:", e);
+    console.error("Error details:", {
+      message: e.message,
+      response: e.response,
+      status: e.response?.status,
+      data: e.response?.data
+    });
+    
+    const errorMessage = e.response?.data?.message ||
+                        e.response?.data?.error ||
+                        e.message ||
                         "Unable to fetch therapists";
+    
+    await NotificationService.sendImmediateNotification({
+      title: "❌ Error",
+      body: errorMessage,
+      data: { type: 'fetch_error' },
+      channelId: 'api-notifications'
+    });
     
     throw new Error(errorMessage);
   }

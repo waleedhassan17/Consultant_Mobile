@@ -1,11 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  ScrollView,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -23,14 +25,14 @@ import {
   togglePasswordVisibility,
   clearError,
   submitSignInAsync,
+  logout,
 } from './SignInSlice';
-import CustomButton from '../../custom-components/CustomButton';
 import CustomInput from '../../custom-components/CustomInput';
-import AppLogo from '../../custom-components/AppLogo';
 
 const SignIn = () => {
   const navigation = useNavigation();
   const dispatch = useAppDispatch();
+  const [refreshing, setRefreshing] = useState(false);
 
   const email = useAppSelector(selectEmail);
   const password = useAppSelector(selectPassword);
@@ -40,23 +42,50 @@ const SignIn = () => {
   const error = useAppSelector(selectError);
 
   const isLoading = status === "loading";
+  const isConsultant = selectedUserType === 'consultant';
+  const isCorporate = selectedUserType === 'corporate';
 
-  const userTypeOptions = [
-    { value: 'visitor', label: 'Visitor', icon: 'person' as keyof typeof Ionicons.glyphMap },
-    { value: 'therapist', label: 'Therapist', icon: 'medical' as keyof typeof Ionicons.glyphMap }
-  ];
-
-  // Clear error when component mounts or when form values change
   useEffect(() => {
     if (error) {
       dispatch(clearError());
     }
   }, [email, password, selectedUserType]);
 
+  const handleRefresh = () => {
+    dispatch(logout());
+    Alert.alert('Form Reset', 'You can now select a new user type');
+  };
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    dispatch(logout());
+    setTimeout(() => {
+      setRefreshing(false);
+      Alert.alert('Form Reset', 'You can now select a new user type');
+    }, 500);
+  }, [dispatch]);
+
+  const handleUserTypeSelect = (userType: 'consultant' | 'corporate') => {
+    console.log('🔵 Tab clicked:', userType);
+    console.log('🔵 Current selectedUserType before:', selectedUserType);
+    dispatch(setSelectedUserType(userType));
+    console.log('🔵 isConsultant:', userType === 'consultant');
+    console.log('🔵 isCorporate:', userType === 'corporate');
+    if (error) {
+      dispatch(clearError());
+    }
+  };
+  
+  // Debug: Log state changes
+  useEffect(() => {
+    console.log('🟢 selectedUserType changed to:', selectedUserType);
+    console.log('🟢 isConsultant:', isConsultant);
+    console.log('🟢 isCorporate:', isCorporate);
+  }, [selectedUserType]);
+
   const validateForm = () => {
-    // Check if user type is selected
     if (!selectedUserType) {
-      Alert.alert('Error', 'Please select whether you are a Visitor or Therapist');
+      Alert.alert('Error', 'Please select whether you are a Consultant or Corporate');
       return false;
     }
 
@@ -65,7 +94,6 @@ const SignIn = () => {
       return false;
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
       Alert.alert('Error', 'Please enter a valid email address');
@@ -77,7 +105,6 @@ const SignIn = () => {
       return false;
     }
 
-    // Optional: Add minimum password length validation
     if (password.trim().length < 6) {
       Alert.alert('Error', 'Password must be at least 6 characters long');
       return false;
@@ -87,9 +114,6 @@ const SignIn = () => {
   };
 
   const handleSignIn = async () => {
-    console.log('Login attempt started');
-
-    // Clear any previous errors
     if (error) {
       dispatch(clearError());
     }
@@ -99,199 +123,206 @@ const SignIn = () => {
     }
 
     try {
-      console.log('Attempting to sign in with:', { 
-        email: email.trim(), 
-        userType: selectedUserType 
-      });
-
-      // Dispatch the sign-in thunk
       const result = await dispatch(submitSignInAsync({ 
         email: email.trim(), 
         password,
         userType: selectedUserType!
       })).unwrap();
 
-      console.log('Login successful:', result);
-
-      // On success, navigate to home
-      try {
-        (navigation as any).navigate('Home');
-      } catch (navigationError) {
-        console.error('Navigation error:', navigationError);
-        // Fallback navigation - use reset instead of replace
-        (navigation as any).reset({
-          index: 0,
-          routes: [{ name: 'Home' }],
-        });
-      }
+      Alert.alert(
+        'Success',
+        'Welcome back!',
+        [
+          {
+            text: 'Continue',
+            onPress: () => {
+              try {
+                (navigation as any).navigate('Home');
+              } catch (navigationError) {
+                (navigation as any).reset({
+                  index: 0,
+                  routes: [{ name: 'Home' }],
+                });
+              }
+            }
+          }
+        ]
+      );
     } catch (err: any) {
-      console.error('Login failed:', err);
-      // Error is automatically handled by the thunk and stored in state
-      // Show error alert
       Alert.alert('Login Failed', err || 'Please check your credentials and try again.');
     }
   };
 
   const handleForgotPassword = () => {
-    // Navigate to forgot password screen or show alert
-    Alert.alert(
-      'Forgot Password',
-      'Please contact support or use the password reset feature.',
-      [{ text: 'OK' }]
-    );
+    (navigation as any).navigate('ForgotPassword');
   };
 
-  const handleEmailChange = (text: string) => {
-    dispatch(setEmail(text));
-    // Clear error when user starts typing
-    if (error) {
-      dispatch(clearError());
-    }
+  const handleSignUp = () => {
+    (navigation as any).reset({
+      index: 0,
+      routes: [{ name: 'SignUp' }],
+    });
   };
 
-  const handlePasswordChange = (text: string) => {
-    dispatch(setPassword(text));
-    // Clear error when user starts typing
-    if (error) {
-      dispatch(clearError());
-    }
-  };
-
-  const handleUserTypeChange = (userType: 'visitor' | 'therapist') => {
-    dispatch(setSelectedUserType(userType));
-    // Clear error when user selects a user type
-    if (error) {
-      dispatch(clearError());
-    }
-  };
-
-  // Helper function to check if form is complete
-  const isFormComplete = () => {
-    return selectedUserType && email.trim() && password.trim();
-  };
+  const isFormComplete = selectedUserType && email.trim() && password.trim();
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        {/* Logo and Header */}
-        <AppLogo size="large" />
-
-        {/* Sign in as */}
-        <Text style={styles.signInText}>Sign in as</Text>
-
-        {/* User Type Selection */}
-        <View style={styles.userTypeContainer}>
-          {userTypeOptions.map((option) => (
-            <TouchableOpacity
-              key={option.value}
-              style={[
-                styles.userTypeButton,
-                selectedUserType === option.value && styles.selectedUserType,
-              ]}
-              onPress={() => handleUserTypeChange(option.value as 'visitor' | 'therapist')}
-              disabled={isLoading}
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#17A2B8']}
+            tintColor="#17A2B8"
+            title="Pull to reset form"
+            titleColor="#666666"
+          />
+        }
+      >
+        <View style={styles.content}>
+          {/* Header with Refresh Button */}
+          <View style={styles.headerRow}>
+            <View style={styles.headerContainer}>
+              <Text style={styles.title}>Welcome back</Text>
+              <Text style={styles.subtitle}>Sign in as</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.refreshButton}
+              onPress={handleRefresh}
+              disabled={isLoading || refreshing}
             >
-              <View
-                style={[
-                  styles.userTypeIcon,
-                  selectedUserType === option.value && styles.selectedUserTypeIcon,
-                ]}
-              >
-                <Ionicons
-                  name={option.icon}
-                  size={32}
-                  color={selectedUserType === option.value ? '#4A90E2' : '#999'}
-                />
-              </View>
+              <Ionicons name="refresh" size={24} color="#17A2B8" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Tab Selection */}
+          <View style={styles.tabContainer}>
+            <TouchableOpacity
+              style={[
+                styles.tab,
+                isConsultant && styles.tabActive,
+              ]}
+              onPress={() => handleUserTypeSelect('consultant')}
+              disabled={isLoading || refreshing}
+            >
               <Text
                 style={[
-                  styles.userTypeText,
-                  selectedUserType === option.value && styles.selectedUserTypeText,
+                  styles.tabText,
+                  isConsultant && styles.tabTextActive,
                 ]}
               >
-                {option.label}
+                Consultant
               </Text>
             </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Selection indicator */}
-        {!selectedUserType && (
-          <View style={styles.selectionHint}>
-            <Text style={styles.selectionHintText}>
-              Please select your account type above
-            </Text>
+            <TouchableOpacity
+              style={[
+                styles.tab,
+                isCorporate && styles.tabActive,
+              ]}
+              onPress={() => handleUserTypeSelect('corporate')}
+              disabled={isLoading || refreshing}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  isCorporate && styles.tabTextActive,
+                ]}
+              >
+                Corporate
+              </Text>
+            </TouchableOpacity>
           </View>
-        )}
 
-        {/* Error Display */}
-        {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
+          {/* Error Display */}
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+
+          {/* Form Fields */}
+          <View style={styles.formContainer}>
+            {/* Email */}
+            <Text style={styles.label}>Email *</Text>
+            <CustomInput
+              placeholder="Enter your email address"
+              value={email}
+              onChangeText={(value) => dispatch(setEmail(value))}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              style={styles.input}
+              editable={!isLoading && !refreshing}
+            />
+
+            {/* Password */}
+            <Text style={styles.label}>Password *</Text>
+            <CustomInput
+              placeholder="Enter your password"
+              value={password}
+              onChangeText={(value) => dispatch(setPassword(value))}
+              secureTextEntry={!showPassword}
+              showPasswordToggle={true}
+              showPassword={showPassword}
+              onTogglePassword={() => dispatch(togglePasswordVisibility())}
+              autoComplete="password"
+              style={styles.input}
+              editable={!isLoading && !refreshing}
+            />
+
+            {/* Forgot Password */}
+            <TouchableOpacity 
+              style={styles.forgotPasswordContainer}
+              onPress={handleForgotPassword}
+              disabled={isLoading || refreshing}
+            >
+              <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+            </TouchableOpacity>
           </View>
-        )}
 
-        {/* Form Fields */}
-        <View style={styles.formContainer}>
-          <CustomInput
-            placeholder="Email"
-            value={email}
-            onChangeText={handleEmailChange}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-            editable={!isLoading}
-          />
-
-          <CustomInput
-            placeholder="Password"
-            value={password}
-            onChangeText={handlePasswordChange}
-            secureTextEntry={!showPassword}
-            showPasswordToggle
-            showPassword={showPassword}
-            onTogglePassword={() => dispatch(togglePasswordVisibility())}
-            autoComplete="password"
-            editable={!isLoading}
-          />
-
-          <TouchableOpacity 
-            style={styles.forgotPasswordContainer}
-            onPress={handleForgotPassword}
-            disabled={isLoading}
+          {/* Sign In Button */}
+          <TouchableOpacity
+            style={[
+              styles.signInButton,
+              isFormComplete && !isLoading && !refreshing && styles.signInButtonActive,
+              (isLoading || refreshing) && styles.signInButtonLoading,
+            ]}
+            onPress={handleSignIn}
+            disabled={!isFormComplete || isLoading || refreshing}
           >
-            <Text style={styles.forgotPasswordText}>Forget password?</Text>
+            <Text style={styles.signInButtonText}>
+              {isLoading 
+                ? 'Signing in...' 
+                : selectedUserType 
+                  ? `Sign In as ${isConsultant ? 'Consultant' : 'Corporate'}`
+                  : 'Sign In'
+              }
+            </Text>
+          </TouchableOpacity>
+
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Sign Up Link */}
+          <TouchableOpacity
+            style={styles.signUpContainer}
+            onPress={handleSignUp}
+            disabled={isLoading || refreshing}
+          >
+            <Text style={styles.signUpText}>
+              Don't have an account?{' '}
+              <Text style={styles.signUpLink}>Create your account</Text>
+            </Text>
           </TouchableOpacity>
         </View>
-
-        {/* Sign In Button */}
-        <CustomButton
-          title={isLoading ? "Signing in..." : "Sign in"}
-          onPress={handleSignIn}
-          style={StyleSheet.flatten([
-            styles.signInButton,
-            isLoading && styles.signInButtonDisabled,
-            !isFormComplete() && styles.signInButtonDisabled
-          ])}
-          disabled={isLoading || !isFormComplete()}
-        />
-
-        {/* Sign Up Link */}
-        <View style={styles.signUpContainer}>
-          <Text style={styles.signUpText}>If you have not an account </Text>
-          <TouchableOpacity 
-            onPress={() => (navigation as any).navigate('SignUp')}
-            disabled={isLoading}
-          >
-            <Text style={[
-              styles.signUpLink,
-              isLoading && styles.signUpLinkDisabled
-            ]}>
-              Sign up
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -299,65 +330,67 @@ const SignIn = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5'
+    backgroundColor: '#FFFFFF',
+  },
+  scrollView: {
+    flex: 1,
   },
   content: {
-    flex: 1,
-    paddingHorizontal: 20, 
-    paddingTop: 40
+    marginTop: 60,
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 40,
   },
-  signInText: { 
-    fontSize: 18,
-    color: '#333', 
-    textAlign: 'center', 
-    marginBottom: 30 
-  },
-  userTypeContainer: {
+  headerRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 20,
-    gap: 60,
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 24,
   },
-  userTypeButton: {
-    alignItems: 'center' 
-  },
-  userTypeIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#E0E0E0',
+  headerContainer: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+  },
+  refreshButton: {
+    padding: 8,
+    marginTop: 4,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: '600',
+    color: '#1A1A1A',
     marginBottom: 8,
-  },
-  selectedUserType: {
-    // Add styles for selected user type button if needed
-  },
-  selectedUserTypeIcon: { 
-    backgroundColor: '#E3F2FD'
-  },
-  userTypeText: { 
-    fontSize: 16,
-    color: '#999',
-    fontWeight: '500'
-  },
-  selectedUserTypeText: {
-    color: '#4A90E2', 
-    fontWeight: '600'
-  },
-  selectionHint: {
-    backgroundColor: '#FFF3E0',
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF9800',
-    padding: 12,
-    marginBottom: 20,
-    borderRadius: 4,
-  },
-  selectionHintText: {
-    color: '#F57C00',
-    fontSize: 14,
     textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 15,
+    color: '#666666',
+    textAlign: 'center',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 25,
+    padding: 4,
+    marginBottom: 24,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 22,
+  },
+  tabActive: {
+    backgroundColor: '#17A2B8',
+  },
+  tabText: {
+    fontSize: 14,
     fontWeight: '500',
+    color: '#666666',
+  },
+  tabTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   errorContainer: {
     backgroundColor: '#FFEBEE',
@@ -370,41 +403,75 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#D32F2F',
     fontSize: 14,
-    fontWeight: '500',
   },
   formContainer: {
-    marginBottom: 30 
+    marginBottom: 24,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#1A1A1A',
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  input: {
+    marginBottom: 0,
   },
   forgotPasswordContainer: {
-    alignItems: 'flex-start', 
-    marginTop: -8 
+    alignItems: 'flex-start',
+    marginTop: 12,
   },
   forgotPasswordText: {
-    color: '#4A90E2',
-    fontSize: 14 
+    color: '#17A2B8',
+    fontSize: 13,
+    fontWeight: '500',
   },
   signInButton: {
-    marginBottom: 30 
-  },
-  signInButtonDisabled: {
-    opacity: 0.6 
-  },
-  signUpContainer: { 
-    flexDirection: 'row',
+    backgroundColor: '#CCCCCC',
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center'
+    marginBottom: 24,
+  },
+  signInButtonActive: {
+    backgroundColor: '#17A2B8',
+  },
+  signInButtonLoading: {
+    backgroundColor: '#17A2B8',
+    opacity: 0.7,
+  },
+  signInButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E0E0E0',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 13,
+    color: '#999999',
+  },
+  signUpContainer: {
+    alignItems: 'center',
   },
   signUpText: {
-    color: '#999', 
-    fontSize: 14 
+    fontSize: 13,
+    color: '#666666',
   },
-  signUpLink: { 
-    color: '#4A90E2', 
-    fontSize: 14, 
-    fontWeight: '500' 
-  },
-  signUpLinkDisabled: { 
-    opacity: 0.6
+  signUpLink: {
+    color: '#17A2B8',
+    fontWeight: '500',
+    textDecorationLine: 'underline',
   },
 });
 

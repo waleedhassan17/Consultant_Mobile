@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
-import { Image, View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, I18nManager, RefreshControl } from "react-native";
+import { Image, View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Linking } from "react-native";
 import * as Progress from "react-native-progress";
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { useAppSelector, useAppDispatch } from "../../hooks/useReduxHooks";
@@ -13,6 +13,9 @@ import {
   selectTherapistTags,
   selectTherapistCertificates,
   selectTherapistAwards,
+  selectTherapistExperiences,
+  selectTherapistRating,
+  selectTherapistEducation,
   selectTherapistComments,
   selectCurrentCommentIndex,
   selectIsLoading,
@@ -43,6 +46,15 @@ export default function TherapistScreen(): React.ReactElement {
   const tags = useAppSelector(selectTherapistTags);
   const certificates = useAppSelector(selectTherapistCertificates);
   const awards = useAppSelector(selectTherapistAwards);
+  const experiences = useAppSelector(selectTherapistExperiences);
+  interface EducationItem {
+    degree: string;
+    institution: string;
+    year: string;
+    description?: string;
+  }
+  
+  const education = useAppSelector(selectTherapistEducation) as EducationItem[];
   const comments = useAppSelector(selectTherapistComments);
   const currentCommentIndex = useAppSelector(selectCurrentCommentIndex);
   const isLoading = useAppSelector(selectIsLoading);
@@ -50,19 +62,16 @@ export default function TherapistScreen(): React.ReactElement {
   
   const [refreshing, setRefreshing] = useState(false);
 
-  // Determine if RTL based on language
   const isRTL = language === 'ar';
 
-  // Load therapist data when component mounts or language/therapistId changes
   useEffect(() => {
-  dispatch(loadTherapistDetail({ therapistId, language }));
+    dispatch(loadTherapistDetail({ therapistId, language }));
   }, [dispatch, therapistId, language]);
 
-  // Pull to refresh handler
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-    dispatch(loadTherapistDetail({ therapistId, language }));
+      dispatch(loadTherapistDetail({ therapistId, language }));
     } catch (error) {
       console.error('Refresh error:', error);
     } finally {
@@ -79,10 +88,19 @@ export default function TherapistScreen(): React.ReactElement {
   };
 
   const handleRetry = () => {
-  dispatch(loadTherapistDetail({ therapistId, language }));
+    dispatch(loadTherapistDetail({ therapistId, language }));
   };
 
-  // Show loading state
+  const handleLinkedInProfile = () => {
+    if (therapistData?.linkedInUrl) {
+      Linking.openURL(therapistData.linkedInUrl);
+    }
+  };
+
+  const handleSelectTimeSlot = () => {
+    console.log('Navigate to time slot selection');
+  };
+
   if (isLoading && !refreshing && !therapistData) {
     return (
       <View style={[styles.container, styles.centerContent]}>
@@ -94,7 +112,6 @@ export default function TherapistScreen(): React.ReactElement {
     );
   }
 
-  // Show error state
   if (error && !therapistData) {
     return (
       <View style={[styles.container, styles.centerContent]}>
@@ -115,7 +132,6 @@ export default function TherapistScreen(): React.ReactElement {
     );
   }
 
-  // Show no data state
   if (!therapistData) {
     return (
       <View style={[styles.container, styles.centerContent]}>
@@ -185,119 +201,224 @@ export default function TherapistScreen(): React.ReactElement {
         </View>
 
         {/* Tags */}
-        <View style={[styles.tagsRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-          {tags.map((tag, index) => (
-            <Text 
-              key={index} 
-              style={[
-                styles.tag,
-                {
-                  marginRight: isRTL ? 0 : 6,
-                  marginLeft: isRTL ? 6 : 0,
-                }
-              ]}
-            >
-              {tag}
-            </Text>
-          ))}
-        </View>
-
-        {/* Details */}
-        <View style={styles.details}>
-          {details.map((item) => (
-            <View 
-              key={item.id} 
-              style={[styles.detailRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
-            >
-              <Image 
-                source={item.icon} 
-                style={[
-                  styles.detailIcon,
-                  {
-                    marginRight: isRTL ? 0 : 8,
-                    marginLeft: isRTL ? 8 : 0,
-                  }
-                ]} 
-                resizeMode="contain" 
-              />
-              <Text style={[styles.detailText, { textAlign: isRTL ? 'right' : 'left' }]}>
-                <Text style={styles.detailLabel}>{item.label}: </Text>
-                {item.value}
-              </Text>
-            </View>
-          ))}
-        </View>
-
-        <Text style={styles.note}>{therapistData.note}</Text>
-      </View>
-
-      {/* Interests */}
-      <View style={styles.card}>
-        <Text style={[styles.Title, { textAlign: isRTL ? 'right' : 'left' }]}>
-          {isRTL ? 'الاهتمامات' : 'Interests'}
-        </Text>
-        <View style={[styles.tagsWrap, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-          {interests.map((interest, index) => (
-            <Text 
-              key={index} 
-              style={[
-                styles.interestTag,
-                {
-                  marginRight: isRTL ? 0 : 6,
-                  marginLeft: isRTL ? 6 : 0,
-                }
-              ]}
-            >
-              {interest}
-            </Text>
-          ))}
-        </View>
-      </View>
-
-      {/* Ratings Section */}
-      <View style={styles.card}>
-        <View style={[styles.topRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-          {[...Array(5)].map((_, i) => (
-            <FontAwesome key={i} name="star" size={16} color="#f5b301" style={{ marginRight: 2 }} />
-          ))}
-          <View style={styles.badge}>
-            <FontAwesome name="star" size={12} color="#fff" />
-          </View>
-          <Text style={styles.ratingText}>
-            {therapistData.rating} ({therapistData.totalReviews} {isRTL ? 'تقييم' : 'Reviews'})
-          </Text>
-        </View>
-
-        {reviews.map((r) => (
-          <View key={r.id} style={styles.reviewRowNew}>
-            <Text style={[styles.reviewLabel, { textAlign: isRTL ? 'right' : 'left' }]}>
-              {r.label}
-            </Text>
-            <View style={[styles.progressRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-              <Progress.Bar
-                progress={r.value / 5}
-                width={200}
-                height={10}
-                color="#333"
-                unfilledColor="#e6e6e6"
-                borderWidth={0}
-                borderRadius={999}
-              />
+        {tags.length > 0 && (
+          <View style={[styles.tagsRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            {tags.map((tag, index) => (
               <Text 
+                key={index} 
                 style={[
-                  styles.progressValue,
+                  styles.tag,
                   {
-                    marginLeft: isRTL ? 0 : 8,
-                    marginRight: isRTL ? 8 : 0,
+                    marginRight: isRTL ? 0 : 6,
+                    marginLeft: isRTL ? 6 : 0,
                   }
                 ]}
               >
-                {r.value.toFixed(2)}
+                {tag}
               </Text>
-            </View>
+            ))}
           </View>
-        ))}
+        )}
+
+        {/* Info Details with Icons - ALWAYS SHOW */}
+        <View style={styles.infoSection}>
+          {/* Languages - ALWAYS SHOW */}
+          <View style={[styles.infoRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            <Ionicons 
+              name="globe-outline" 
+              size={20} 
+              color="#0077cc" 
+              style={[
+                styles.infoIcon,
+                {
+                  marginRight: isRTL ? 0 : 10,
+                  marginLeft: isRTL ? 10 : 0,
+                }
+              ]} 
+            />
+            <Text style={[styles.infoText, { textAlign: isRTL ? 'right' : 'left' }]}>
+              <Text style={styles.infoLabel}>
+                {isRTL ? 'اللغة: ' : 'Language: '}
+              </Text>
+              {therapistData.languages?.join(', ') || (isRTL ? 'غير محدد' : 'Not specified')}
+            </Text>
+          </View>
+
+          {/* Country - ALWAYS SHOW */}
+          <View style={[styles.infoRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            <Ionicons 
+              name="location-outline" 
+              size={20} 
+              color="#0077cc" 
+              style={[
+                styles.infoIcon,
+                {
+                  marginRight: isRTL ? 0 : 10,
+                  marginLeft: isRTL ? 10 : 0,
+                }
+              ]} 
+            />
+            <Text style={[styles.infoText, { textAlign: isRTL ? 'right' : 'left' }]}>
+              <Text style={styles.infoLabel}>
+                {isRTL ? 'البلد: ' : 'Country: '}
+              </Text>
+              {therapistData.country || (isRTL ? 'غير محدد' : 'Not specified')}
+            </Text>
+          </View>
+
+          {/* Joining Date - ALWAYS SHOW */}
+          <View style={[styles.infoRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            <Ionicons 
+              name="calendar-outline" 
+              size={20} 
+              color="#0077cc" 
+              style={[
+                styles.infoIcon,
+                {
+                  marginRight: isRTL ? 0 : 10,
+                  marginLeft: isRTL ? 10 : 0,
+                }
+              ]} 
+            />
+            <Text style={[styles.infoText, { textAlign: isRTL ? 'right' : 'left' }]}>
+              <Text style={styles.infoLabel}>
+                {isRTL ? 'تاريخ الانضمام: ' : 'Joining Date: '}
+              </Text>
+              {therapistData.joiningDate || (isRTL ? 'غير محدد' : 'Not specified')}
+            </Text>
+          </View>
+
+          {/* Number of Sessions - ALWAYS SHOW */}
+          <View style={[styles.infoRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            <Ionicons 
+              name="stats-chart-outline" 
+              size={20} 
+              color="#0077cc" 
+              style={[
+                styles.infoIcon,
+                {
+                  marginRight: isRTL ? 0 : 10,
+                  marginLeft: isRTL ? 10 : 0,
+                }
+              ]} 
+            />
+            <Text style={[styles.infoText, { textAlign: isRTL ? 'right' : 'left' }]}>
+              <Text style={styles.infoLabel}>
+                {isRTL ? 'عدد الجلسات: ' : 'Number of sessions: '}
+              </Text>
+              {therapistData.numberOfSessions || (isRTL ? 'غير محدد' : 'Not specified')}
+            </Text>
+          </View>
+        </View>
+
+        {/* VAT Notice */}
+        <Text style={styles.vatNotice}>
+          {isRTL ? '(جميع الأسعار تشمل ضريبة القيمة المضافة ورسوم الخدمة)' : '(All prices include VAT and Service Fees.)'}
+        </Text>
+
+        {/* Action Buttons - ALWAYS SHOW */}
+        <View style={styles.actionButtons}>
+          {/* LinkedIn Button - ALWAYS SHOW */}
+          <TouchableOpacity 
+            style={[styles.linkedInButton, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
+            onPress={handleLinkedInProfile}
+          >
+            <FontAwesome name="linkedin-square" size={18} color="#0077B5" />
+            <Text style={[
+              styles.linkedInButtonText,
+              {
+                marginLeft: isRTL ? 0 : 8,
+                marginRight: isRTL ? 8 : 0,
+              }
+            ]}>
+              {isRTL ? 'عرض الملف الشخصي' : 'See LinkedIn Profile'}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.selectTimeSlotButton}
+            onPress={handleSelectTimeSlot}
+          >
+            <Text style={styles.selectTimeSlotButtonText}>
+              {isRTL ? 'اختر الوقت' : 'Select Time Slot'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {therapistData.note && <Text style={styles.note}>{therapistData.note}</Text>}
       </View>
+
+      {/* Interests */}
+      {interests.length > 0 && (
+        <View style={styles.card}>
+          <Text style={[styles.Title, { textAlign: isRTL ? 'right' : 'left' }]}>
+            {isRTL ? 'الاهتمامات' : 'Interests'}
+          </Text>
+          <View style={[styles.tagsWrap, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            {interests.map((interest, index) => (
+              <Text 
+                key={index} 
+                style={[
+                  styles.interestTag,
+                  {
+                    marginRight: isRTL ? 0 : 6,
+                    marginLeft: isRTL ? 6 : 0,
+                  }
+                ]}
+              >
+                {interest}
+              </Text>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {/* Ratings Section */}
+      {reviews.length > 0 && (
+        <View style={styles.card}>
+          <View style={[styles.topRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            {[...Array(5)].map((_, i) => (
+              <FontAwesome key={i} name="star" size={16} color="#f5b301" style={{ marginRight: 2 }} />
+            ))}
+            <View style={styles.badge}>
+              <FontAwesome name="star" size={12} color="#fff" />
+            </View>
+            <Text style={styles.ratingText}>
+              {therapistData.rating} ({therapistData.totalReviews} {isRTL ? 'تقييم' : 'Reviews'})
+            </Text>
+          </View>
+
+          {reviews.map((r) => (
+            <View key={r.id} style={styles.reviewRowNew}>
+              <Text style={[styles.reviewLabel, { textAlign: isRTL ? 'right' : 'left' }]}>
+                {r.label}
+              </Text>
+              <View style={[styles.progressRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                <Progress.Bar
+                  progress={r.value / 5}
+                  width={200}
+                  height={10}
+                  color="#333"
+                  unfilledColor="#e6e6e6"
+                  borderWidth={0}
+                  borderRadius={999}
+                />
+                <Text 
+                  style={[
+                    styles.progressValue,
+                    {
+                      marginLeft: isRTL ? 0 : 8,
+                      marginRight: isRTL ? 8 : 0,
+                    }
+                  ]}
+                >
+                  {r.value.toFixed(2)}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
 
       {/* Users Comment */}
       {currentComment && (
@@ -332,7 +453,6 @@ export default function TherapistScreen(): React.ReactElement {
             ))}
           </View>
 
-          {/* Pagination Controls */}
           {comments.length > 1 && (
             <>
               <View style={[
@@ -371,91 +491,191 @@ export default function TherapistScreen(): React.ReactElement {
         </View>
       )}
 
-      <TouchableOpacity>
-        <Text style={styles.moreReviews}>
-          {isRTL ? 'عرض المزيد من التقييمات' : 'Check more reviews'}
-        </Text>
-      </TouchableOpacity>
+      {comments.length > 0 && (
+        <TouchableOpacity>
+          <Text style={styles.moreReviews}>
+            {isRTL ? 'عرض المزيد من التقييمات' : 'Check more reviews'}
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Experience Section */}
+      {experiences.length > 0 && (
+        <View style={styles.card}>
+          <Text style={[styles.Title, { textAlign: isRTL ? 'right' : 'left' }]}>
+            {isRTL ? 'الخبرة' : 'Experience'}
+          </Text>
+          {experiences.map((item, index, arr) => (
+            <View 
+              key={index} 
+              style={[styles.certificateRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
+            >
+              <View 
+                style={[
+                  styles.timeline,
+                  {
+                    marginRight: isRTL ? 0 : 12,
+                    marginLeft: isRTL ? 12 : 0,
+                  }
+                ]}
+              >
+                <View style={styles.timelineDot} />
+                {index !== arr.length - 1 && <View style={styles.timelineLine} />}
+              </View>
+              <View style={[
+                styles.certificateTextWrap,
+                { alignItems: isRTL ? 'flex-end' : 'flex-start' }
+              ]}>
+                <Text style={[styles.certificateTitle, { textAlign: isRTL ? 'right' : 'left' }]}>
+                  {item.title}
+                </Text>
+                <Text style={[styles.certificateOrg, { textAlign: isRTL ? 'right' : 'left' }]}>
+                  {item.company}
+                </Text>
+                <Text style={[styles.certificateDate, { textAlign: isRTL ? 'right' : 'left' }]}>
+                  {item.period}
+                </Text>
+                {item.description && (
+                  <Text style={[styles.experienceDesc, { textAlign: isRTL ? 'right' : 'left' }]}>
+                    {item.description}
+                  </Text>
+                )}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Education Section */}
+      {education.length > 0 && (
+        <View style={styles.card}>
+          <Text style={[styles.Title, { textAlign: isRTL ? 'right' : 'left' }]}>
+            {isRTL ? 'التعليم' : 'Education'}
+          </Text>
+          {education.map((item, index, arr) => (
+            <View 
+              key={index} 
+              style={[styles.certificateRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
+            >
+              <View 
+                style={[
+                  styles.timeline,
+                  {
+                    marginRight: isRTL ? 0 : 12,
+                    marginLeft: isRTL ? 12 : 0,
+                  }
+                ]}
+              >
+                <View style={styles.timelineDot} />
+                {index !== arr.length - 1 && <View style={styles.timelineLine} />}
+              </View>
+              <View style={[
+                styles.certificateTextWrap,
+                { alignItems: isRTL ? 'flex-end' : 'flex-start' }
+              ]}>
+                <Text style={[styles.certificateTitle, { textAlign: isRTL ? 'right' : 'left' }]}>
+                  {item.degree}
+                </Text>
+                <Text style={[styles.certificateOrg, { textAlign: isRTL ? 'right' : 'left' }]}>
+                  {item.institution}
+                </Text>
+                <Text style={[styles.certificateDate, { textAlign: isRTL ? 'right' : 'left' }]}>
+                  {item.year}
+                </Text>
+                {item.description && (
+                  <Text style={[styles.experienceDesc, { textAlign: isRTL ? 'right' : 'left' }]}>
+                    {item.description}
+                  </Text>
+                )}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
 
       {/* Certificates Section */}
-      <View style={styles.card}>
-        <Text style={[styles.Title, { textAlign: isRTL ? 'right' : 'left' }]}>
-          {isRTL ? 'الشهادات' : 'Certificates'}
-        </Text>
-        {certificates.map((item, index, arr) => (
-          <View 
-            key={index} 
-            style={[styles.certificateRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
-          >
+      {certificates.length > 0 && (
+        <View style={styles.card}>
+          <Text style={[styles.Title, { textAlign: isRTL ? 'right' : 'left' }]}>
+            {isRTL ? 'الشهادات' : 'Certificates'}
+          </Text>
+          {certificates.map((item, index, arr) => (
             <View 
-              style={[
-                styles.timeline,
-                {
-                  marginRight: isRTL ? 0 : 12,
-                  marginLeft: isRTL ? 12 : 0,
-                }
-              ]}
+              key={index} 
+              style={[styles.certificateRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
             >
-              <View style={styles.timelineDot} />
-              {index !== arr.length - 1 && <View style={styles.timelineLine} />}
+              <View 
+                style={[
+                  styles.timeline,
+                  {
+                    marginRight: isRTL ? 0 : 12,
+                    marginLeft: isRTL ? 12 : 0,
+                  }
+                ]}
+              >
+                <View style={styles.timelineDot} />
+                {index !== arr.length - 1 && <View style={styles.timelineLine} />}
+              </View>
+              <View style={[
+                styles.certificateTextWrap,
+                { alignItems: isRTL ? 'flex-end' : 'flex-start' }
+              ]}>
+                <Text style={[styles.certificateTitle, { textAlign: isRTL ? 'right' : 'left' }]}>
+                  {item.title}
+                </Text>
+                <Text style={[styles.certificateOrg, { textAlign: isRTL ? 'right' : 'left' }]}>
+                  {item.org}
+                </Text>
+                <Text style={[styles.certificateDate, { textAlign: isRTL ? 'right' : 'left' }]}>
+                  {item.date}
+                </Text>
+              </View>
             </View>
-            <View style={[
-              styles.certificateTextWrap,
-              { alignItems: isRTL ? 'flex-end' : 'flex-start' }
-            ]}>
-              <Text style={[styles.certificateTitle, { textAlign: isRTL ? 'right' : 'left' }]}>
-                {item.title}
-              </Text>
-              <Text style={[styles.certificateOrg, { textAlign: isRTL ? 'right' : 'left' }]}>
-                {item.org}
-              </Text>
-              <Text style={[styles.certificateDate, { textAlign: isRTL ? 'right' : 'left' }]}>
-                {item.date}
-              </Text>
-            </View>
-          </View>
-        ))}
-      </View>
+          ))}
+        </View>
+      )}
 
       {/* Awards & Recognitions Section */}
-      <View style={styles.card}>
-        <Text style={[styles.Title, { textAlign: isRTL ? 'right' : 'left' }]}>
-          {isRTL ? 'الجوائز والتقديرات' : 'Awards & Recognitions'}
-        </Text>
-        {awards.map((item, index, arr) => (
-          <View 
-            key={index} 
-            style={[styles.certificateRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
-          >
+      {awards.length > 0 && (
+        <View style={styles.card}>
+          <Text style={[styles.Title, { textAlign: isRTL ? 'right' : 'left' }]}>
+            {isRTL ? 'الجوائز والتقديرات' : 'Awards & Recognitions'}
+          </Text>
+          {awards.map((item, index, arr) => (
             <View 
-              style={[
-                styles.timeline,
-                {
-                  marginRight: isRTL ? 0 : 12,
-                  marginLeft: isRTL ? 12 : 0,
-                }
-              ]}
+              key={index} 
+              style={[styles.certificateRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}
             >
-              <View style={styles.timelineDot} />
-              {index !== arr.length - 1 && <View style={styles.timelineLine} />}
+              <View 
+                style={[
+                  styles.timeline,
+                  {
+                    marginRight: isRTL ? 0 : 12,
+                    marginLeft: isRTL ? 12 : 0,
+                  }
+                ]}
+              >
+                <View style={styles.timelineDot} />
+                {index !== arr.length - 1 && <View style={styles.timelineLine} />}
+              </View>
+              <View style={[
+                styles.certificateTextWrap,
+                { alignItems: isRTL ? 'flex-end' : 'flex-start' }
+              ]}>
+                <Text style={[styles.certificateTitle, { textAlign: isRTL ? 'right' : 'left' }]}>
+                  {item.title}
+                </Text>
+                <Text style={[styles.certificateOrg, { textAlign: isRTL ? 'right' : 'left' }]}>
+                  {item.org}
+                </Text>
+                <Text style={[styles.certificateDate, { textAlign: isRTL ? 'right' : 'left' }]}>
+                  {item.date}
+                </Text>
+              </View>
             </View>
-            <View style={[
-              styles.certificateTextWrap,
-              { alignItems: isRTL ? 'flex-end' : 'flex-start' }
-            ]}>
-              <Text style={[styles.certificateTitle, { textAlign: isRTL ? 'right' : 'left' }]}>
-                {item.title}
-              </Text>
-              <Text style={[styles.certificateOrg, { textAlign: isRTL ? 'right' : 'left' }]}>
-                {item.org}
-              </Text>
-              <Text style={[styles.certificateDate, { textAlign: isRTL ? 'right' : 'left' }]}>
-                {item.date}
-              </Text>
-            </View>
-          </View>
-        ))}
-      </View>
+          ))}
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -578,6 +798,67 @@ const styles = StyleSheet.create({
   detailLabel: { 
     fontWeight: "500", 
     color: "#035FE9" 
+  },
+  infoSection: {
+    marginTop: 15,
+    marginBottom: 10,
+    gap: 10,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  infoIcon: {
+    width: 20,
+  },
+  infoText: {
+    fontSize: 14,
+    color: "#444",
+    flex: 1,
+  },
+  infoLabel: {
+    fontWeight: "600",
+    color: "#0077cc",
+  },
+  vatNotice: {
+    fontSize: 12,
+    color: "#777",
+    fontStyle: "italic",
+    textAlign: "center",
+    marginTop: 10,
+    marginBottom: 5,
+  },
+  actionButtons: {
+    marginTop: 15,
+    gap: 10,
+  },
+  linkedInButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#0077B5',
+  },
+  linkedInButtonText: {
+    color: '#0077B5',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  selectTimeSlotButton: {
+    backgroundColor: '#2e7d96',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  selectTimeSlotButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   note: { 
     marginTop: 10, 
@@ -733,6 +1014,12 @@ const styles = StyleSheet.create({
     marginTop: 2, 
     fontSize: 15, 
     fontWeight: "500",
+  },
+  experienceDesc: {
+    fontSize: 13,
+    color: "#666",
+    marginTop: 4,
+    lineHeight: 18,
   },
   loadingText: {
     marginTop: 12,

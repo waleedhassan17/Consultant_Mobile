@@ -15,6 +15,8 @@ export interface Therapist {
   price60: string;
   price30: string;
   image: ImageSourcePropType;
+  isTopTherapist?: boolean; // optional boolean flag for featured therapists
+  languages?: string[]; 
 }
 
 export interface Review {
@@ -50,6 +52,20 @@ export interface Award {
   date: string;
 }
 
+export interface Experience {
+  title: string;
+  company: string;
+  period: string;
+  description?: string;
+}
+
+export interface Education {
+  degree: string;
+  institution: string;
+  year: string;
+  description?: string;
+}
+
 // ==================== EXTENDED MODELS ====================
 
 export interface TherapistDetail extends Therapist {
@@ -63,5 +79,19 @@ export interface TherapistDetail extends Therapist {
   comments: Comment[];
   certificates: Certificate[];
   awards: Award[];
+  experiences: Experience[];  // New field
+  education: Education[];     // New field
   note: string;
+  pricing: Array<{
+    amount: string;
+    duration: string;
+    type: string;
+  }>;
+  languages: string[];        // Made required
+  country: string;            // Made required
+  joiningDate: string;        // Made required
+  numberOfSessions: string;   // Made required
+  linkedInUrl: string;        // Made required
+  
+
 }

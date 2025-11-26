@@ -1,8 +1,8 @@
 // Base user types
 export const UserType = {
   user: 'user',
-  visitor: 'visitor',
-  therapist: 'therapist',
+  consultant: 'consultant',
+  corporate: 'corporate',
   admin: 'admin',
 } as const;
 
@@ -31,10 +31,13 @@ export interface userInfo {
   uid: string;
   nickname?: string;
   displayName?: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   phone?: string;
   phoneNumber?: string;
   birthYear?: string;
+  country?: string;
   gender?: GenderValue;
   userType: UserTypeValue;
   avatar?: string;
@@ -43,57 +46,102 @@ export interface userInfo {
   updatedAt?: string;
   emailVerified?: boolean;
   isVerified?: boolean;
+  
+  // Consultant specific fields
+  preferredCurrency?: string;
+  discipline?: string;
+  languagesSpoken?: string[];
+  availableForIndividual?: boolean;
+  availableForEnterprise?: boolean;
+  availableForMembership?: boolean;
+  
+  // Corporate specific fields
+  companyName?: string;
+  industryType?: string;
+  companySize?: string;
 }
 
-// SignIn Model
-export interface signInInfo {
-  email: string;
-  password: string;
-  userType: UserTypeValue;
-}
-
-export interface signInPayload {
-  email: string;
-  password: string;
-  userType: UserTypeValue;
-}
-
-export interface signInSliceState {
-  email: string;
-  password: string;
-  showPassword: boolean;
-  selectedUserType: UserTypeValue | null;
-  error: string;
-  accessToken: string;
-  user: userInfo | null;
-  status: AuthStatusValue;
-}
-
-// SignUp Model
-export interface signUpInfo {
-  nickname: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  phone: string;
-  birthYear: string;
-  gender: GenderValue;
-  userType: UserTypeValue;
-  agreeToPrivacy: boolean;
-}
-
+// Base SignUp payload
 export interface signUpPayload {
   nickname: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   confirmPassword: string;
   phone: string;
   birthYear: string;
+  country: string;
   gender: GenderValue;
   userType: UserTypeValue;
   agreeToPrivacy: boolean;
 }
 
+// User Registration (Basic - Default)
+export interface UserRegistrationPayload {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  country: string;
+  gender: GenderValue;
+  userType: 'user';
+  agreeToPrivacy: boolean;
+}
+
+// Consultant Registration
+export interface ConsultantRegistrationPayload {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  country: string;
+  preferredCurrency: string;
+  discipline: string;
+  languagesSpoken: string[];
+  availableForIndividual: boolean;
+  availableForEnterprise: boolean;
+  availableForMembership: boolean;
+  gender: GenderValue;
+  userType: 'consultant';
+  agreeToPrivacy: boolean;
+}
+
+// Corporate Registration
+export interface CorporateRegistrationPayload {
+  companyName: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  industryType: string;
+  companySize: string;
+  country: string;
+  gender: GenderValue;
+  userType: 'corporate';
+  agreeToPrivacy: boolean;
+}
+
+// Extended SignUp payload with all fields
+export interface ExtendedSignUpPayload extends signUpPayload {
+  // Consultant specific
+  preferredCurrency?: string;
+  discipline?: string;
+  languagesSpoken?: string[];
+  availableForIndividual?: boolean;
+  availableForEnterprise?: boolean;
+  availableForMembership?: boolean;
+  
+  // Corporate specific
+  companyName?: string;
+  industryType?: string;
+  companySize?: string;
+}
+
+// SignUp slice state
 export interface signUpSliceState {
   nickname: string;
   email: string;
@@ -126,21 +174,38 @@ export interface AuthError {
   field?: string;
 }
 
-// Form validation interfaces
-export interface SignInFormValidation {
-  isEmailValid: boolean;
-  isPasswordValid: boolean;
-  isUserTypeSelected: boolean;
-  isFormValid: boolean;
+// SignIn Model
+export interface signInInfo {
+  email: string;
+  password: string;
+  userType: UserTypeValue;
 }
 
+export interface signInPayload {
+  email: string;
+  password: string;
+  userType: UserTypeValue;
+}
+
+export interface signInSliceState {
+  email: string;
+  password: string;
+  showPassword: boolean;
+  selectedUserType: UserTypeValue | null;
+  error: string;
+  accessToken: string;
+  user: userInfo | null;
+  status: AuthStatusValue;
+}
+
+// Form validation interfaces
 export interface SignUpFormValidation {
-  isNicknameValid: boolean;
+  isFirstNameValid: boolean;
+  isLastNameValid: boolean;
   isEmailValid: boolean;
   isPasswordValid: boolean;
   isPasswordMatch: boolean;
-  isPhoneValid: boolean;
-  isBirthYearValid: boolean;
+  isCountryValid: boolean;
   isGenderSelected: boolean;
   isUserTypeSelected: boolean;
   isPrivacyAgreed: boolean;
@@ -162,38 +227,50 @@ export interface GenderOption {
   description?: string;
 }
 
-// API request/response types
-export interface LoginRequest {
-  email: string;
-  password: string;
-  userType: UserTypeValue;
-  rememberMe?: boolean;
-}
-
-export interface RegisterRequest {
-  nickname: string;
+// API request types
+export interface RegisterUserRequest {
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   confirmPassword: string;
-  phone: string;
-  birthYear: string;
+  country: string;
   gender: GenderValue;
-  userType: UserTypeValue;
   agreeToPrivacy: boolean;
 }
 
-export interface ForgotPasswordRequest {
+export interface RegisterConsultantRequest {
+  firstName: string;
+  lastName: string;
   email: string;
-  userType: UserTypeValue;
-}
-
-export interface ResetPasswordRequest {
-  token: string;
-  newPassword: string;
+  password: string;
   confirmPassword: string;
+  country: string;
+  preferredCurrency: string;
+  discipline: string;
+  languagesSpoken: string[];
+  availableForIndividual: boolean;
+  availableForEnterprise: boolean;
+  availableForMembership: boolean;
+  gender: GenderValue;
+  agreeToPrivacy: boolean;
 }
 
-// Combined auth state (if needed for global auth state)
+export interface RegisterCorporateRequest {
+  companyName: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  industryType: string;
+  companySize: string;
+  country: string;
+  gender: GenderValue;
+  agreeToPrivacy: boolean;
+}
+
+// Combined auth state
 export interface IAuthSliceState {
   isAuthenticated: boolean;
   userType: UserTypeValue | null;

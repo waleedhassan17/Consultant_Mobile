@@ -5,13 +5,20 @@ import SignUp from "../screens/signup-screen/SignUp";
 import LogoutScreen from "../screens/logout-screen/logout";
 import HomeScreen from "../screens/home-screen/homeScreen";
 import TherapistScreen from "../screens/therapist-screen/therapist"// Import your DrawerNavigator
+import ForgotPassword from "../screens/forgot-password/forgotPassword";
+import ResetPassword from "../screens/reset-password/resetPassword";
+import EmailVerification from "../screens/email-verification/emailVerification";
+
 
 export const BaseRouteNames = {
   SignIn: "SignIn",
   SignUp: "SignUp",
   Logout: "Logout",
   Home: "Home",
-  TherapistProfile:"TherapistScreen" // This will now be the DrawerNavigator
+  TherapistProfile:"TherapistScreen", // This will now be the DrawerNavigator
+  ForgotPassword: "ForgotPassword",
+  ResetPassword: "ResetPassword",
+  EmailVerification: "EmailVerification",
 } as const;
 
 export type BaseRouteName = typeof BaseRouteNames[keyof typeof BaseRouteNames];
@@ -51,4 +58,25 @@ export const BaseRoutes: IRoute[] = [
       headerShown: false, // Hide header since DrawerNavigator manages its own headers
     },
   },
+  {
+    component: ForgotPassword,
+    title: BaseRouteNames.ForgotPassword,
+    options: {
+      headerShown: false,
+    }
+  },
+  {
+    component: ResetPassword,
+    title: BaseRouteNames.ResetPassword,
+    options: {
+      headerShown: false,
+    }
+  },
+  {
+    component: EmailVerification,
+    title: BaseRouteNames.EmailVerification,
+    options: {
+      headerShown: false,
+    }
+  }
 ];

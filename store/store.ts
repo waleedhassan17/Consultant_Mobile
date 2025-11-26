@@ -6,6 +6,10 @@ import { signUpSlice } from "../screens/signup-screen/SignUpSlice";
 import { logoutSlice } from "../screens/logout-screen/logoutSlice";
 import { therapistSlice } from "../screens/therapist-screen/therapistSlice";
 import { appContainerSlice } from "../components/appContainerSlice";
+import { emailVerificationSlice } from "../screens/email-verification/emailVerificationSlice";
+import { forgotPasswordSlice } from "../screens/forgot-password/forgotPasswordSlice";
+import { resetPasswordSlice } from "../screens/reset-password/resetPasswordSlice";
+
 
 export const store = configureStore({
   reducer: {
@@ -16,6 +20,9 @@ export const store = configureStore({
     homeScreen: homeScreenReducer,
     therapist: therapistSlice.reducer,
     appContainer: appContainerSlice.reducer,
+    emailVerification: emailVerificationSlice.reducer,
+    forgotPassword: forgotPasswordSlice.reducer,
+    resetPassword: resetPasswordSlice.reducer,
   },
 });
 
