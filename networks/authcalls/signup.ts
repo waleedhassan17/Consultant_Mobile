@@ -1,47 +1,149 @@
-import { signUpPayload } from "../../models/auth";
+import { 
+  RegisterUserRequest, 
+  RegisterConsultantRequest, 
+  RegisterCorporateRequest 
+} from "../../models/user";
 import { NotificationService } from "../../notifications/notificationHandler";
-import { API } from "../network/network"; // Import the API object with axios
+import { API } from "../network/network";
 
-// Configuration flag to switch between real and dummy API
-const USE_DUMMY_API = true; // Set to false when you want to use real API
-
-export const registerUser = async ({ signUpInfo }: { signUpInfo: signUpPayload }) => {
-  // Use dummy API if flag is true
-  if (USE_DUMMY_API) {
-    return registerUserDummy({ signUpInfo });
-  }
-
-  // Real API implementation
+// Single unified signup function
+export const registerUser = async ({ 
+  userData 
+}: { 
+  userData: RegisterUserRequest | RegisterConsultantRequest | RegisterCorporateRequest 
+}) => {
   try {
+    // Determine role based on the data structure
+    let role = 'user'; // default role
+    let requestData: any = {};
+
+    // Check if it's a consultant registration
+    if ('discipline' in userData && 'languagesSpoken' in userData) {
+      role = 'consultant';
+      const consultantData = userData as RegisterConsultantRequest;
+      requestData = {
+        firstName: consultantData.firstName.trim(),
+        lastName: consultantData.lastName.trim(),
+        email: consultantData.email.trim().toLowerCase(),
+        password: consultantData.password,
+        confirmPassword: consultantData.confirmPassword,
+        country: consultantData.country.trim(),
+        preferredCurrency: consultantData.preferredCurrency.trim(),
+        discipline: consultantData.discipline.trim(),
+        languagesSpoken: consultantData.languagesSpoken,
+        availableForIndividual: consultantData.availableForIndividual,
+        availableForEnterprise: consultantData.availableForEnterprise,
+        availableForMembership: consultantData.availableForMembership,
+        gender: consultantData.gender,
+        agreeToPrivacy: consultantData.agreeToPrivacy,
+        role: 'consultant',
+      };
+    } 
+    // Check if it's a corporate registration
+    else if ('companyName' in userData && 'industryType' in userData) {
+      role = 'corporate';
+      const corporateData = userData as RegisterCorporateRequest;
+      requestData = {
+        companyName: corporateData.companyName.trim(),
+        firstName: corporateData.firstName.trim(),
+        lastName: corporateData.lastName.trim(),
+        email: corporateData.email.trim().toLowerCase(),
+        password: corporateData.password,
+        confirmPassword: corporateData.confirmPassword,
+        industryType: corporateData.industryType.trim(),
+        companySize: corporateData.companySize.trim(),
+        country: corporateData.country.trim(),
+        gender: corporateData.gender,
+        agreeToPrivacy: corporateData.agreeToPrivacy,
+        role: 'corporate',
+      };
+    } 
+    // Default user registration
+    else {
+      const defaultUserData = userData as RegisterUserRequest;
+      requestData = {
+        firstName: defaultUserData.firstName.trim(),
+        lastName: defaultUserData.lastName.trim(),
+        email: defaultUserData.email.trim().toLowerCase(),
+        password: defaultUserData.password,
+        confirmPassword: defaultUserData.confirmPassword,
+        country: defaultUserData.country.trim(),
+        gender: defaultUserData.gender,
+        agreeToPrivacy: defaultUserData.agreeToPrivacy,
+        role: 'user',
+      };
+    }
+
+    console.log('📤 Sending registration request:', {
+      url: 'user',
+      role,
+      email: requestData.email,
+      hasPassword: !!requestData.password,
+      hasConfirmPassword: !!requestData.confirmPassword,
+    });
+
     const response = await API.POST({
-      URL: "auth/register",
+      URL: "user",
       headers: {
         'Content-Type': 'application/json',
       },
-      data: {
-        email: signUpInfo.email.trim().toLowerCase(),
-        password: signUpInfo.password,
-        nickname: signUpInfo.nickname.trim(),
-        phone: signUpInfo.phone.trim(),
-        birthYear: signUpInfo.birthYear?.trim() || '',
-        gender: signUpInfo.gender,
-        userType: signUpInfo.userType
-      },
+      data: requestData,
     });
 
-    return response.data;
-  } catch (error: any) {
-    console.error("Signup error:", error);
+    console.log('✅ Registration successful:', response.data);
+
+    return {
+      accessToken: response.data.access_token || response.data.accessToken,
+      refreshToken: response.data.refresh_token || response.data.refreshToken,
+      user: {
+        id: response.data.user?.id || response.data.id || '',
+        uid: response.data.user?.uid || response.data.uid || '',
+        email: requestData.email,
+        firstName: requestData.firstName,
+        lastName: requestData.lastName,
+        displayName: `${requestData.firstName} ${requestData.lastName}`,
+        nickname: requestData.firstName,
+        country: requestData.country,
+        gender: requestData.gender,
+        userType: role,
+        // Include role-specific fields in response
+        ...(role === 'consultant' && {
+          preferredCurrency: requestData.preferredCurrency,
+          discipline: requestData.discipline,
+          languagesSpoken: requestData.languagesSpoken,
+          availableForIndividual: requestData.availableForIndividual,
+          availableForEnterprise: requestData.availableForEnterprise,
+          availableForMembership: requestData.availableForMembership,
+        }),
+        ...(role === 'corporate' && {
+          companyName: requestData.companyName,
+          industryType: requestData.industryType,
+          companySize: requestData.companySize,
+        }),
+        emailVerified: response.data.user?.emailVerified || false,
+        isVerified: response.data.user?.isVerified || false,
+        createdAt: response.data.user?.createdAt || new Date().toISOString(),
+        updatedAt: response.data.user?.updatedAt || new Date().toISOString(),
+      }
+    };
+  } catch (e: any) {
+    console.error("❌ User registration error:", {
+      message: e.message,
+      status: e.response?.status,
+      statusText: e.response?.statusText,
+      data: e.response?.data,
+      url: e.config?.url,
+    });
     
-    const errorMessage = error.response?.data?.message || 
-                        error.response?.data?.error || 
-                        error.message || 
-                        "Registration failed";
+    const errorMessage = e.response?.data?.message || 
+                        e.response?.data?.error || 
+                        e.message || 
+                        "Registration failed. Please try again.";
     
     await NotificationService.sendImmediateNotification({
-      title: "❌ Sign Up Failed",
+      title: "❌ Registration Failed",
       body: errorMessage,
-      data: { type: 'sign_up_error' },
+      data: { type: 'registration_error' },
       channelId: 'auth-notifications'
     });
     
@@ -49,90 +151,7 @@ export const registerUser = async ({ signUpInfo }: { signUpInfo: signUpPayload }
   }
 };
 
-// Dummy API for testing/development
-const registerUserDummy = async ({ signUpInfo }: { signUpInfo: signUpPayload }) => {
-  console.log("🔄 Using DUMMY API for registration");
-  
-  // Mock network delay
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  // Mock existing emails/phones to simulate conflicts
-  const existingEmails = ["existing@test.com", "taken@test.com", "user@test.com", "therapist@test.com", "admin@test.com"];
-  const existingPhones = ["+1234567999"];
-
-  const email = signUpInfo.email.trim().toLowerCase();
-  const phone = signUpInfo.phone.trim();
-
-  // Check for existing email
-  if (existingEmails.includes(email)) {
-    await NotificationService.sendImmediateNotification({
-      title: "❌ Sign Up Failed",
-      body: "Email already registered",
-      data: { type: 'sign_up_error' },
-      channelId: 'auth-notifications'
-    });
-    throw new Error("Email already registered");
-  }
-
-  // Check for existing phone
-  if (existingPhones.includes(phone)) {
-    await NotificationService.sendImmediateNotification({
-      title: "❌ Sign Up Failed",
-      body: "Phone number already registered",
-      data: { type: 'sign_up_error' },
-      channelId: 'auth-notifications'
-    });
-    throw new Error("Phone number already registered");
-  }
-
-  // Validate password length
-  if (signUpInfo.password.length < 6) {
-    await NotificationService.sendImmediateNotification({
-      title: "❌ Sign Up Failed",
-      body: "Password must be at least 6 characters",
-      data: { type: 'sign_up_error' },
-      channelId: 'auth-notifications'
-    });
-    throw new Error("Password must be at least 6 characters");
-  }
-
-  // Generate user ID
-  const userId = `user_${Date.now()}`;
-
-  // Generate tokens
-  const accessToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(JSON.stringify({ 
-    email: email, 
-    userType: signUpInfo.userType,
-    exp: Date.now() + 3600000 
-  }))}.${Date.now()}`;
-  
-  const refreshToken = `refresh_${btoa(email)}_${Date.now()}`;
-
-  // Return response in the format expected by slice
-  return {
-    user: {
-      id: userId,
-      uid: userId,
-      email: email,
-      displayName: signUpInfo.nickname.trim(),
-      nickname: signUpInfo.nickname.trim(),
-      phoneNumber: phone,
-      photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(signUpInfo.nickname.trim())}&background=random`,
-      birthYear: signUpInfo.birthYear?.trim() || '',
-      gender: signUpInfo.gender,
-      userType: signUpInfo.userType,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      emailVerified: false,
-      isVerified: false,
-      // Therapist-specific fields
-      ...(signUpInfo.userType === 'therapist' && {
-        specializations: [],
-        experience: '',
-        qualifications: []
-      })
-    },
-    accessToken,
-    refreshToken
-  };
-};
+// Export legacy function names for backward compatibility
+export const registerAsUser = registerUser;
+export const registerAsConsultant = registerUser;
+export const registerAsCorporate = registerUser;

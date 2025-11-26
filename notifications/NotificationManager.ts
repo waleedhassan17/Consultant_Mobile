@@ -1,8 +1,9 @@
-// NotificationManager.ts
+// notifications/NotificationManager.ts
 import { useEffect, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { store } from '../store/store';
 import { NotificationService } from './notificationHandler';
+import { UserTypeValue } from '../models/user';
 
 export class NotificationManager {
   private static isInitialized = false;
@@ -39,7 +40,6 @@ export class NotificationManager {
       if (this.appStateRef.match(/inactive|background/) && nextAppState === 'active') {
         console.log('App came to foreground');
         NotificationService.clearAllNotifications();
-        // Don't clear processedSessions here - let them persist across app states
       }
       
       this.appStateRef = nextAppState;
@@ -67,8 +67,10 @@ export class NotificationManager {
           console.log('New sign-in session detected, sending notification');
           this.processedSessions.add(sessionId);
           
-          // Send notification immediately
-          NotificationService.sendSignInSuccessNotification(signInState.user.userType)
+          // Use UserTypeValue from models/user.ts
+          const userType: UserTypeValue = signInState.user.userType;
+          
+          NotificationService.sendSignInSuccessNotification(userType)
             .catch(error => console.error('Failed to send sign in notification:', error));
         }
       }
@@ -86,8 +88,10 @@ export class NotificationManager {
           console.log('New sign-up session detected, sending notification');
           this.processedSessions.add(sessionId);
           
-          // Send notification immediately
-          NotificationService.sendSignUpSuccessNotification(signUpState.user.userType)
+          // Use UserTypeValue from models/user.ts
+          const userType: UserTypeValue = signUpState.user.userType;
+          
+          NotificationService.sendSignUpSuccessNotification(userType)
             .catch(error => console.error('Failed to send sign up notification:', error));
         }
       }
@@ -95,7 +99,7 @@ export class NotificationManager {
       // Clean old sessions (keep only last 10 to prevent memory issues)
       if (this.processedSessions.size > 10) {
         const sessionsArray = Array.from(this.processedSessions);
-        const toKeep = sessionsArray.slice(-5); // Keep last 5
+        const toKeep = sessionsArray.slice(-5);
         this.processedSessions.clear();
         toKeep.forEach(session => this.processedSessions.add(session));
       }

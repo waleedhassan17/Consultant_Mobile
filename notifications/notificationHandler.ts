@@ -1,14 +1,14 @@
-// services/NotificationService.ts
+// notifications/notificationHandler.ts
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import { UserTypeValue } from '../models/user';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldPlaySound: true,
     shouldSetBadge: true,
-    shouldShowAlert: true,
     shouldShowBanner: true,
     shouldShowList: true,
   }),
@@ -79,18 +79,21 @@ export class NotificationService {
   }
 
   // Keep original method names for backward compatibility
-  static async sendSignInSuccessNotification(userType: 'visitor' | 'therapist' ): Promise<void> {
+  static async sendSignInSuccessNotification(userType: 'visitor' | 'therapist'): Promise<void> {
     await this.sendAuthNotification('signin', userType);
   }
 
-  static async sendSignUpSuccessNotification(userType: 'visitor' | 'therapist'): Promise<void> {
+  // Updated method with UserTypeValue from models/user.ts
+  static async sendSignUpSuccessNotification(userType: UserTypeValue): Promise<void> {
     await this.sendAuthNotification('signup', userType);
   }
 
-  static async sendAuthNotification(type: 'signin' | 'signup', userType: 'visitor' | 'therapist'): Promise<void> {
+  // Updated method with UserTypeValue from models/user.ts
+  static async sendAuthNotification(type: 'signin' | 'signup', userType: UserTypeValue): Promise<void> {
     try {
+      const userTypeDisplay = this.getUserTypeDisplay(userType);
       const title = type === 'signin' ? '🎉 Welcome Back!' : '✅ Account Created!';
-      const body = `Successfully ${type === 'signin' ? 'signed in' : 'signed up'} as ${userType}`;
+      const body = `Successfully ${type === 'signin' ? 'signed in' : 'signed up'} as ${userTypeDisplay}`;
 
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -114,37 +117,38 @@ export class NotificationService {
   }
 
   static async sendImmediateNotification({
-  title,
-  body,
-  data,
-  channelId = 'auth-notifications'
-}: {
-  title: string;
-  body: string;
-  data?: any;
-  channelId?: string;
-}): Promise<void> {
-  try {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title,
-        body,
-        data: data || {},
-        sound: 'default',
-        badge: 1,
-        priority: Notifications.AndroidNotificationPriority.MAX,
-        ...(Platform.OS === 'android' && {
-          channelId,
-        }),
-      },
-      trigger: null,
-    });
+    title,
+    body,
+    data,
+    channelId = 'auth-notifications'
+  }: {
+    title: string;
+    body: string;
+    data?: any;
+    channelId?: string;
+  }): Promise<void> {
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          data: data || {},
+          sound: 'default',
+          badge: 1,
+          priority: Notifications.AndroidNotificationPriority.MAX,
+          ...(Platform.OS === 'android' && {
+            channelId,
+          }),
+        },
+        trigger: null,
+      });
 
-    console.log(`✅ Notification sent: ${title}`);
-  } catch (error) {
-    console.error(`❌ Failed to send notification:`, error);
+      console.log(`✅ Notification sent: ${title}`);
+    } catch (error) {
+      console.error(`❌ Failed to send notification:`, error);
+    }
   }
-}
+
   static async clearAllNotifications(): Promise<void> {
     await Notifications.dismissAllNotificationsAsync();
     await Notifications.cancelAllScheduledNotificationsAsync();
@@ -154,13 +158,13 @@ export class NotificationService {
     return this.expoPushToken;
   }
 
-  // Keep original methods for compatibility
-  static async handleAuthenticationSuccess(type: 'signin' | 'signup', userType: 'visitor' | 'therapist'): Promise<void> {
+  // Updated method with UserTypeValue from models/user.ts
+  static async handleAuthenticationSuccess(type: 'signin' | 'signup', userType: UserTypeValue): Promise<void> {
     await this.sendAuthNotification(type, userType);
   }
 
   static setupNotificationListeners() {
-    return null; // No longer needed
+    return null;
   }
 
   static cleanupListeners(): void {

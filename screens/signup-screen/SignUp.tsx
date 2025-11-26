@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,18 +7,28 @@ import {
   SafeAreaView,
   ScrollView,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAppSelector, useAppDispatch } from '../../hooks/useReduxHooks';
 import {
-  selectNickname,
+  selectFirstName,
+  selectLastName,
   selectEmail,
   selectPassword,
   selectConfirmPassword,
-  selectPhone,
-  selectBirthYear,
+  selectCountry,
+  selectPreferredCurrency,
   selectGender,
+  selectDiscipline,
+  selectLanguagesSpoken,
+  selectAvailableForIndividual,
+  selectAvailableForEnterprise,
+  selectAvailableForMembership,
+  selectCompanyName,
+  selectIndustryType,
+  selectCompanySize,
   selectSelectedUserType,
   selectShowPassword,
   selectShowConfirmPassword,
@@ -26,34 +36,58 @@ import {
   selectStatus,
   selectError,
   selectIsFormValid,
-  setNickname,
+  setFirstName,
+  setLastName,
   setEmail,
   setPassword,
   setConfirmPassword,
-  setPhone,
-  setBirthYear,
+  setCountry,
+  setPreferredCurrency,
   setGender,
+  setDiscipline,
+  setLanguagesSpoken,
+  toggleAvailableForIndividual,
+  toggleAvailableForEnterprise,
+  toggleAvailableForMembership,
+  setCompanyName,
+  setIndustryType,
+  setCompanySize,
   setSelectedUserType,
   togglePasswordVisibility,
   toggleConfirmPasswordVisibility,
   togglePrivacyAgreement,
   clearError,
+  resetForm,
   submitSignUpAsync,
 } from './SignUpSlice';
-import CustomInput from '../../Custom-Components/CustomInput';
-import AppLogo from '../../Custom-Components/AppLogo';
+import CustomInput from '../../custom-components/CustomInput';
+import AppLogo from '../../custom-components/AppLogo';
 
 const SignUp = () => {
   const navigation = useNavigation();
   const dispatch = useAppDispatch();
+  const [refreshing, setRefreshing] = useState(false);
 
-  const nickname = useAppSelector(selectNickname);
+  // Form state
+  const firstName = useAppSelector(selectFirstName);
+  const lastName = useAppSelector(selectLastName);
   const email = useAppSelector(selectEmail);
   const password = useAppSelector(selectPassword);
   const confirmPassword = useAppSelector(selectConfirmPassword);
-  const phone = useAppSelector(selectPhone);
-  const birthYear = useAppSelector(selectBirthYear);
+  const country = useAppSelector(selectCountry);
+  const preferredCurrency = useAppSelector(selectPreferredCurrency);
   const gender = useAppSelector(selectGender);
+  const discipline = useAppSelector(selectDiscipline);
+  const languagesSpoken = useAppSelector(selectLanguagesSpoken);
+  const availableForIndividual = useAppSelector(selectAvailableForIndividual);
+  const availableForEnterprise = useAppSelector(selectAvailableForEnterprise);
+  const availableForMembership = useAppSelector(selectAvailableForMembership);
+  
+  // Corporate fields
+  const companyName = useAppSelector(selectCompanyName);
+  const industryType = useAppSelector(selectIndustryType);
+  const companySize = useAppSelector(selectCompanySize);
+  
   const selectedUserType = useAppSelector(selectSelectedUserType);
   const showPassword = useAppSelector(selectShowPassword);
   const showConfirmPassword = useAppSelector(selectShowConfirmPassword);
@@ -63,49 +97,36 @@ const SignUp = () => {
   const isFormValid = useAppSelector(selectIsFormValid);
 
   const isLoading = status === "loading";
-
-  const userTypeOptions = [
-    { value: 'visitor', label: 'Visitor', icon: 'person' as keyof typeof Ionicons.glyphMap },
-    { value: 'therapist', label: 'Therapist', icon: 'medical' as keyof typeof Ionicons.glyphMap }
-  ];
+  const isConsultant = selectedUserType === 'consultant';
+  const isCorporate = selectedUserType === 'corporate';
+  const isDefaultUser = !selectedUserType || selectedUserType === 'user';
 
   useEffect(() => {
     if (error) {
       dispatch(clearError());
     }
-  }, [nickname, email, password, confirmPassword, phone, birthYear, gender, selectedUserType]);
+  }, [firstName, lastName, email, password, confirmPassword, country, gender, selectedUserType]);
 
-  const handleFieldChange = (field: string, value: string) => {
-    switch (field) {
-      case 'nickname':
-        dispatch(setNickname(value));
-        break;
-      case 'email':
-        dispatch(setEmail(value));
-        break;
-      case 'password':
-        dispatch(setPassword(value));
-        break;
-      case 'confirmPassword':
-        dispatch(setConfirmPassword(value));
-        break;
-      case 'phone':
-        dispatch(setPhone(value));
-        break;
-      case 'birthYear':
-        dispatch(setBirthYear(value));
-        break;
-    }
-    if (error) {
-      dispatch(clearError());
-    }
+  const handleRefresh = () => {
+    dispatch(resetForm());
+    Alert.alert('Form Reset', 'You can now select a new user type');
   };
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    dispatch(resetForm());
+    // Simulate a brief delay for better UX
+    setTimeout(() => {
+      setRefreshing(false);
+      Alert.alert('Form Reset', 'You can now select a new user type');
+    }, 500);
+  }, [dispatch]);
 
   const handleGenderSelect = (selectedGender: 'male' | 'female' | 'other' | 'prefer-not-to-say') => {
     dispatch(setGender(selectedGender));
   };
 
-  const handleUserTypeSelect = (userType: 'visitor' | 'therapist') => {
+  const handleUserTypeSelect = (userType: 'consultant' | 'corporate') => {
     dispatch(setSelectedUserType(userType));
     if (error) {
       dispatch(clearError());
@@ -113,18 +134,72 @@ const SignUp = () => {
   };
 
   const validateForm = () => {
-    console.log('Validating form...');
-
-    if (!selectedUserType) {
-      Alert.alert('Error', 'Please select whether you are a visitor or therapist');
-      return false;
+    // If default user registration (no tab selected)
+    if (isDefaultUser) {
+      if (!firstName.trim()) {
+        Alert.alert('Error', 'Please enter your first name');
+        return false;
+      }
+      if (!lastName.trim()) {
+        Alert.alert('Error', 'Please enter your last name');
+        return false;
+      }
+      // No additional fields required for default user registration
     }
 
-    if (!nickname.trim()) {
-      Alert.alert('Error', 'Please enter a nickname');
-      return false;
+    // Consultant validation
+    if (isConsultant) {
+      if (!firstName.trim()) {
+        Alert.alert('Error', 'Please enter your first name');
+        return false;
+      }
+      if (!lastName.trim()) {
+        Alert.alert('Error', 'Please enter your last name');
+        return false;
+      }
+      if (!discipline.trim()) {
+        Alert.alert('Error', 'Please select a discipline');
+        return false;
+      }
+      if (languagesSpoken.length === 0) {
+        Alert.alert('Error', 'Please select at least one language');
+        return false;
+      }
+      if (!preferredCurrency.trim()) {
+        Alert.alert('Error', 'Please select your preferred currency');
+        return false;
+      }
+      if (!availableForIndividual && !availableForEnterprise && !availableForMembership) {
+        Alert.alert('Error', 'Please select at least one availability option');
+        return false;
+      }
+    }
+    
+    // Corporate validation
+    if (isCorporate) {
+      if (!companyName.trim()) {
+        Alert.alert('Error', 'Please enter your company name');
+        return false;
+      }
+      if (!firstName.trim()) {
+        Alert.alert('Error', 'Please enter your first name');
+        return false;
+      }
+      if (!lastName.trim()) {
+        Alert.alert('Error', 'Please enter your last name');
+        return false;
+      }
+      if (!industryType.trim()) {
+        Alert.alert('Error', 'Please select an industry type');
+        return false;
+      }
+      if (!companySize.trim()) {
+        Alert.alert('Error', 'Please select company size');
+        return false;
+      }
     }
 
+    // Common validation for all types
     if (!email.trim()) {
       Alert.alert('Error', 'Please enter an email address');
       return false;
@@ -141,7 +216,6 @@ const SignUp = () => {
       return false;
     }
 
-    // Password strength validation
     if (password.length < 6) {
       Alert.alert('Error', 'Password must be at least 6 characters long');
       return false;
@@ -152,21 +226,8 @@ const SignUp = () => {
       return false;
     }
 
-    if (!phone.trim()) {
-      Alert.alert('Error', 'Please enter a phone number');
-      return false;
-    }
-
-    if (!birthYear.trim()) {
-      Alert.alert('Error', 'Please enter your birth year');
-      return false;
-    }
-
-    // Birth year validation
-    const currentYear = new Date().getFullYear();
-    const year = parseInt(birthYear);
-    if (isNaN(year) || year < 1900 || year > currentYear - 13) {
-      Alert.alert('Error', 'Please enter a valid birth year (must be at least 13 years old)');
+    if (!country.trim()) {
+      Alert.alert('Error', 'Please select your country');
       return false;
     }
 
@@ -176,18 +237,14 @@ const SignUp = () => {
     }
 
     if (!agreeToPrivacy) {
-      Alert.alert('Error', 'Please agree to the Privacy Policy');
+      Alert.alert('Error', 'Please agree to the Terms & Conditions and Privacy Policy');
       return false;
     }
 
-    console.log('Form validation passed');
     return true;
   };
 
   const handleRegister = async () => {
-    console.log('Registration attempt started');
-
-    // Clear any previous errors
     if (error) {
       dispatch(clearError());
     }
@@ -198,30 +255,31 @@ const SignUp = () => {
 
     try {
       const registrationData = {
-        nickname: nickname.trim(),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         email: email.trim(),
         password,
         confirmPassword,
-        phone: phone.trim(),
-        birthYear: birthYear.trim(),
+        country: country.trim(),
+        preferredCurrency: preferredCurrency.trim(),
         gender: gender!,
-        userType: selectedUserType!,
+        userType: selectedUserType, // Can be null for default user registration
+        discipline: discipline.trim(),
+        languagesSpoken,
+        availableForIndividual,
+        availableForEnterprise,
+        availableForMembership,
+        companyName: companyName.trim(),
+        industryType: industryType.trim(),
+        companySize: companySize.trim(),
         agreeToPrivacy,
       };
 
-      console.log('Attempting to register with:', { 
-        ...registrationData, 
-        password: '[HIDDEN]', 
-        confirmPassword: '[HIDDEN]' 
-      });
-
       const result = await dispatch(submitSignUpAsync(registrationData)).unwrap();
-
-      console.log('Registration successful:', result);
 
       Alert.alert(
         'Success',
-        'Registration successful! Welcome to the app!',
+        'Registration successful! Welcome!',
         [
           {
             text: 'Continue',
@@ -229,7 +287,6 @@ const SignUp = () => {
               try {
                 (navigation as any).navigate('Home');
               } catch (navigationError) {
-                console.error('Navigation error:', navigationError);
                 (navigation as any).reset({
                   index: 0,
                   routes: [{ name: 'Home' }],
@@ -240,68 +297,88 @@ const SignUp = () => {
         ]
       );
     } catch (err: any) {
-      console.error('Registration failed:', err);
       Alert.alert('Registration Failed', err || 'Registration failed. Please try again.');
     }
   };
 
-  const handleBack = () => {
-     (navigation as any).reset({
-                  index: 0,
-                  routes: [{ name: 'SignIn' }],
-                });
+  const handleSignIn = () => {
+    (navigation as any).reset({
+      index: 0,
+      routes: [{ name: 'SignIn' }],
+    });
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#17A2B8']}
+            tintColor="#17A2B8"
+            title="Pull to reset form"
+            titleColor="#666666"
+          />
+        }
+      >
         <View style={styles.content}>
-          {/* Header - Using AppLogo Component */}
-          <AppLogo size="large" style={styles.logoHeader} />
-
-          {/* Sign up as */}
-          <Text style={styles.signUpAsText}>Sign up as</Text>
-
-          {/* User Type Selection */}
-          <View style={styles.userTypeContainer}>
-            {userTypeOptions.map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                style={[
-                  styles.userTypeButton,
-                  selectedUserType === option.value && styles.selectedUserType,
-                ]}
-                onPress={() => handleUserTypeSelect(option.value as 'visitor' | 'therapist')}
-                disabled={isLoading}
-              >
-                <View
-                  style={[
-                    styles.userTypeIcon,
-                    selectedUserType === option.value && styles.selectedUserTypeIcon,
-                  ]}
-                >
-                  <Ionicons
-                    name={option.icon}
-                    size={32}
-                    color={selectedUserType === option.value ? '#4A90E2' : '#999'}
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.userTypeText,
-                    selectedUserType === option.value && styles.selectedUserTypeText,
-                  ]}
-                >
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          {/* Header with Refresh Button */}
+          <View style={styles.headerRow}>
+            <View style={styles.headerContainer}>
+              <Text style={styles.title}>Create your account</Text>
+              <Text style={styles.subtitle}>
+                {isDefaultUser ? 'Sign up as User' : 'Register as a'}
+              </Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.refreshButton}
+              onPress={handleRefresh}
+              disabled={isLoading || refreshing}
+            >
+              <Ionicons name="refresh" size={24} color="#17A2B8" />
+            </TouchableOpacity>
           </View>
 
-          {/* Required Fields Notice */}
-          <Text style={styles.requiredNotice}>
-            All fields marked with * are required
-          </Text>
+          {/* Tab Selection - Only Consultant and Corporate */}
+          <View style={styles.tabContainer}>
+            <TouchableOpacity
+              style={[
+                styles.tab,
+                isConsultant && styles.tabActive,
+              ]}
+              onPress={() => handleUserTypeSelect('consultant')}
+              disabled={isLoading || refreshing}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  isConsultant && styles.tabTextActive,
+                ]}
+              >
+                Consultant
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.tab,
+                isCorporate && styles.tabActive,
+              ]}
+              onPress={() => handleUserTypeSelect('corporate')}
+              disabled={isLoading || refreshing}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  isCorporate && styles.tabTextActive,
+                ]}
+              >
+                Corporate
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Error Display */}
           {error && (
@@ -312,189 +389,315 @@ const SignUp = () => {
 
           {/* Form Fields */}
           <View style={styles.formContainer}>
-            {/* Nickname */}
-            <CustomInput
-              placeholder="Enter Nickname *"
-              value={nickname}
-              onChangeText={(value) => handleFieldChange('nickname', value)}
-              autoCapitalize="none"
-              style={styles.customInputStyle}
-              editable={!isLoading}
-            />
-            <Text style={styles.helperText}>
-              You can use letters a-z, numbers and periods (. , -)
-            </Text>
+            {/* Corporate specific field - Company Name */}
+            {isCorporate && (
+              <>
+                <Text style={styles.label}>Company Name *</Text>
+                <CustomInput
+                  placeholder="Enter company name"
+                  value={companyName}
+                  onChangeText={(value) => dispatch(setCompanyName(value))}
+                  autoCapitalize="words"
+                  style={styles.input}
+                  editable={!isLoading && !refreshing}
+                />
+              </>
+            )}
 
-            {/* Email */}
+            {/* First Name */}
+            <Text style={styles.label}>First Name *</Text>
             <CustomInput
-              placeholder="Enter Email *"
+              placeholder="Enter your first name"
+              value={firstName}
+              onChangeText={(value) => dispatch(setFirstName(value))}
+              autoCapitalize="words"
+              style={styles.input}
+              editable={!isLoading && !refreshing}
+            />
+
+            {/* Last Name */}
+            <Text style={styles.label}>Last Name *</Text>
+            <CustomInput
+              placeholder="Enter your last name"
+              value={lastName}
+              onChangeText={(value) => dispatch(setLastName(value))}
+              autoCapitalize="words"
+              style={styles.input}
+              editable={!isLoading && !refreshing}
+            />
+
+            {/* Email (Corporate shows "Corporate Email") */}
+            <Text style={styles.label}>{isCorporate ? 'Corporate Email *' : 'Email *'}</Text>
+            <CustomInput
+              placeholder="Enter your email address"
               value={email}
-              onChangeText={(value) => handleFieldChange('email', value)}
+              onChangeText={(value) => dispatch(setEmail(value))}
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
-              style={styles.customInputStyle}
-              editable={!isLoading}
+              style={styles.input}
+              editable={!isLoading && !refreshing}
             />
 
             {/* Password */}
+            <Text style={styles.label}>Password *</Text>
             <CustomInput
-              placeholder="Password *"
+              placeholder="Enter your password"
               value={password}
-              onChangeText={(value) => handleFieldChange('password', value)}
+              onChangeText={(value) => dispatch(setPassword(value))}
               secureTextEntry={!showPassword}
               showPasswordToggle={true}
               showPassword={showPassword}
               onTogglePassword={() => dispatch(togglePasswordVisibility())}
               autoComplete="new-password"
-              style={styles.customInputStyle}
-              editable={!isLoading}
+              style={styles.input}
+              editable={!isLoading && !refreshing}
             />
-            <Text style={styles.helperText}>
-              Use 6 or more characters with a mix of letters and numbers
-            </Text>
 
             {/* Confirm Password */}
+            <Text style={styles.label}>Password Confirmation *</Text>
             <CustomInput
-              placeholder="Confirm Password *"
+              placeholder="Confirm your password"
               value={confirmPassword}
-              onChangeText={(value) => handleFieldChange('confirmPassword', value)}
+              onChangeText={(value) => dispatch(setConfirmPassword(value))}
               secureTextEntry={!showConfirmPassword}
               showPasswordToggle={true}
               showPassword={showConfirmPassword}
               onTogglePassword={() => dispatch(toggleConfirmPasswordVisibility())}
               autoComplete="new-password"
-              style={styles.customInputStyle}
-              editable={!isLoading}
+              style={styles.input}
+              editable={!isLoading && !refreshing}
             />
 
-            {/* Password Match Indicator */}
-            {password.length > 0 && confirmPassword.length > 0 && (
-              <Text style={[
-                styles.helperText,
-                password === confirmPassword ? styles.successText : styles.errorHelperText
-              ]}>
-                {password === confirmPassword ? 'Passwords match ✓' : 'Passwords do not match'}
-              </Text>
+            {/* Corporate specific field - Industry Type */}
+            {isCorporate && (
+              <>
+                <Text style={styles.label}>Industry Type *</Text>
+                <SingleSelectPicker
+                  title="Select Industry"
+                  value={industryType}
+                  options={INDUSTRIES}
+                  onSelect={(value) => dispatch(setIndustryType(value))}
+                  placeholder="Select Industry"
+                  disabled={isLoading || refreshing}
+                />
+              </>
             )}
 
-            {/* Phone */}
-            <CustomInput
-              placeholder="Phone Number *"
-              value={phone}
-              onChangeText={(value) => handleFieldChange('phone', value)}
-              keyboardType="phone-pad"
-              autoComplete="tel"
-              style={styles.customInputStyle}
-              editable={!isLoading}
-            />
-            <Text style={styles.helperText}>
-              * Please make sure you enter a valid phone number
-            </Text>
+            {/* Corporate specific - Company Size */}
+            {isCorporate && (
+              <>
+                <Text style={styles.label}>Company Size *</Text>
+                <SingleSelectPicker
+                  title="Select Company Size"
+                  value={companySize}
+                  options={COMPANY_SIZES}
+                  onSelect={(value) => dispatch(setCompanySize(value))}
+                  placeholder="Select Company Size"
+                  disabled={isLoading || refreshing}
+                />
+              </>
+            )}
 
-            {/* Birth Year */}
-            <CustomInput
-              placeholder="Birth Year *"
-              value={birthYear}
-              onChangeText={(value) => handleFieldChange('birthYear', value)}
-              keyboardType="numeric"
-              maxLength={4}
-              rightIcon={'calendar-outline' as keyof typeof Ionicons.glyphMap}
-              style={styles.customInputStyle}
-              editable={!isLoading}
+            {/* Country */}
+            <Text style={styles.label}>Country *</Text>
+            <SingleSelectPicker
+              title="Select Country"
+              value={country}
+              options={COUNTRIES}
+              onSelect={(value) => dispatch(setCountry(value))}
+              placeholder="Select Country"
+              disabled={isLoading || refreshing}
             />
+
+            {/* Consultant specific - Preferred Currency */}
+            {isConsultant && (
+              <>
+                <Text style={styles.label}>Preferred Currency *</Text>
+                <SingleSelectPicker
+                  title="Select Currency"
+                  value={preferredCurrency}
+                  options={CURRENCIES}
+                  onSelect={(value) => dispatch(setPreferredCurrency(value))}
+                  placeholder="Select Currency"
+                  disabled={isLoading || refreshing}
+                />
+              </>
+            )}
+
+            {/* Consultant specific - Languages Spoken */}
+            {isConsultant && (
+              <>
+                <Text style={styles.label}>Languages Spoken *</Text>
+                <MultiSelectPicker
+                  title="Select Languages"
+                  selectedValues={languagesSpoken}
+                  options={LANGUAGES}
+                  onSelect={(values) => dispatch(setLanguagesSpoken(values))}
+                  placeholder="Select Languages"
+                  disabled={isLoading || refreshing}
+                />
+              </>
+            )}
 
             {/* Gender */}
-            <Text style={styles.genderLabel}>Gender *</Text>
+            <Text style={styles.label}>Gender *</Text>
             <View style={styles.genderContainer}>
               <TouchableOpacity
-                style={styles.radioContainer}
+                style={styles.radioButton}
                 onPress={() => handleGenderSelect('male')}
-                disabled={isLoading}
+                disabled={isLoading || refreshing}
               >
                 <View style={[styles.radio, gender === 'male' && styles.radioSelected]}>
                   {gender === 'male' && <View style={styles.radioDot} />}
                 </View>
-                <Text style={styles.radioText}>Male</Text>
+                <Text style={styles.radioLabel}>Male</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.radioContainer}
+                style={styles.radioButton}
                 onPress={() => handleGenderSelect('female')}
-                disabled={isLoading}
+                disabled={isLoading || refreshing}
               >
                 <View style={[styles.radio, gender === 'female' && styles.radioSelected]}>
                   {gender === 'female' && <View style={styles.radioDot} />}
                 </View>
-                <Text style={styles.radioText}>Female</Text>
+                <Text style={styles.radioLabel}>Female</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.radioContainer}
+                style={styles.radioButton}
                 onPress={() => handleGenderSelect('other')}
-                disabled={isLoading}
+                disabled={isLoading || refreshing}
               >
                 <View style={[styles.radio, gender === 'other' && styles.radioSelected]}>
                   {gender === 'other' && <View style={styles.radioDot} />}
                 </View>
-                <Text style={styles.radioText}>Other</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.radioContainer}
-                onPress={() => handleGenderSelect('prefer-not-to-say')}
-                disabled={isLoading}
-              >
-                <View style={[styles.radio, gender === 'prefer-not-to-say' && styles.radioSelected]}>
-                  {gender === 'prefer-not-to-say' && <View style={styles.radioDot} />}
-                </View>
-                <Text style={styles.radioText}>Prefer Not To Say</Text>
+                <Text style={styles.radioLabel}>Other</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Consultant specific - Discipline */}
+            {isConsultant && (
+              <>
+                <Text style={styles.label}>Discipline *</Text>
+                <SingleSelectPicker
+                  title="Select Discipline"
+                  value={discipline}
+                  options={DISCIPLINES}
+                  onSelect={(value) => dispatch(setDiscipline(value))}
+                  placeholder="Select Discipline"
+                  disabled={isLoading || refreshing}
+                />
+              </>
+            )}
+
+            {/* Consultant specific field - Available For */}
+            {isConsultant && (
+              <>
+                <Text style={styles.label}>Available For *</Text>
+                <View style={styles.checkboxGroup}>
+                  <TouchableOpacity 
+                    style={styles.checkboxItem}
+                    onPress={() => dispatch(toggleAvailableForIndividual())}
+                    disabled={isLoading || refreshing}
+                  >
+                    <View style={[styles.checkbox, availableForIndividual && styles.checkboxChecked]}>
+                      {availableForIndividual && (
+                        <Ionicons name="checkmark" size={14} color="#fff" />
+                      )}
+                    </View>
+                    <Text style={styles.checkboxLabel}>Individual (B2C)</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.checkboxItem}
+                    onPress={() => dispatch(toggleAvailableForEnterprise())}
+                    disabled={isLoading || refreshing}
+                  >
+                    <View style={[styles.checkbox, availableForEnterprise && styles.checkboxChecked]}>
+                      {availableForEnterprise && (
+                        <Ionicons name="checkmark" size={14} color="#fff" />
+                      )}
+                    </View>
+                    <Text style={styles.checkboxLabel}>Enterprise (B2B)</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.checkboxItem}
+                    onPress={() => dispatch(toggleAvailableForMembership())}
+                    disabled={isLoading || refreshing}
+                  >
+                    <View style={[styles.checkbox, availableForMembership && styles.checkboxChecked]}>
+                      {availableForMembership && (
+                        <Ionicons name="checkmark" size={14} color="#fff" />
+                      )}
+                    </View>
+                    <Text style={styles.checkboxLabel}>Membership</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
           </View>
 
-          {/* Privacy Policy Agreement */}
-          <View style={styles.privacyContainer}>
-            <TouchableOpacity
-              style={styles.checkboxContainer}
-              onPress={() => dispatch(togglePrivacyAgreement())}
-              disabled={isLoading}
-            >
-              <View style={[styles.checkbox, agreeToPrivacy && styles.checkboxChecked]}>
-                {agreeToPrivacy && (
-                  <Ionicons name="checkmark" size={16} color="white" />
-                )}
-              </View>
-              <Text style={styles.privacyText}>
-                I agree with the <Text style={styles.privacyLink}>Privacy Policy</Text>
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Register Button */}
-          <TouchableOpacity 
-            style={[
-              styles.registerButton, 
-              isFormValid && !isLoading && styles.registerButtonActive,
-              isLoading && styles.registerButtonLoading
-            ]} 
-            onPress={handleRegister}
-            disabled={!isFormValid || isLoading}
+          {/* Terms & Conditions */}
+          <TouchableOpacity
+            style={styles.termsContainer}
+            onPress={() => dispatch(togglePrivacyAgreement())}
+            disabled={isLoading || refreshing}
           >
-            <Ionicons name="lock-closed" size={16} color="white" style={styles.registerIcon} />
-            <Text style={styles.registerButtonText}>
-              {isLoading ? 'Registering...' : 'Register'}
+            <View style={[styles.checkbox, agreeToPrivacy && styles.checkboxChecked]}>
+              {agreeToPrivacy && <Ionicons name="checkmark" size={14} color="#fff" />}
+            </View>
+            <Text style={styles.termsText}>
+              I agree to{' '}
+              <Text style={styles.termsLink}>Terms & Conditions</Text>,{' '}
+              <Text style={styles.termsLink}>Privacy Policy</Text>
+              {isConsultant && (
+                <> and understand that signing an{' '}
+                <Text style={styles.termsLink}>NDA</Text> may be required by some corporate</>
+              )}
             </Text>
           </TouchableOpacity>
 
-          {/* Back Link */}
-          <TouchableOpacity 
-            style={styles.backContainer} 
-            onPress={handleBack}
-            disabled={isLoading}
+          {/* Register Button */}
+          <TouchableOpacity
+            style={[
+              styles.registerButton,
+              isFormValid && !isLoading && !refreshing && styles.registerButtonActive,
+              (isLoading || refreshing) && styles.registerButtonLoading,
+            ]}
+            onPress={handleRegister}
+            disabled={!isFormValid || isLoading || refreshing}
           >
-            <Text style={[styles.backText, isLoading && styles.backTextDisabled]}>
-              Back
+            <Text style={styles.registerButtonText}>
+              {isLoading 
+                ? 'Signing up...' 
+                : isConsultant
+                  ? 'Sign Up as Consultant'
+                  : isCorporate
+                    ? 'Sign Up as Corporate'
+                    : 'Sign Up as User'
+              }
+            </Text>
+          </TouchableOpacity>
+
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Sign In Link */}
+          <TouchableOpacity
+            style={styles.signInContainer}
+            onPress={handleSignIn}
+            disabled={isLoading || refreshing}
+          >
+            <Text style={styles.signInText}>
+              Already have an account?{' '}
+              <Text style={styles.signInLink}>Sign In to your account</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -506,62 +709,67 @@ const SignUp = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFFFFF',
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 30,
+    marginTop: 20,
+    paddingHorizontal: 24,
+    paddingTop: 32,
     paddingBottom: 40,
   },
-  logoHeader: {
-    marginBottom: 20,
-  },
-  signUpAsText: {
-    fontSize: 18,
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  userTypeContainer: {
+  headerRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 30,
-    gap: 60,
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 24,
   },
-  userTypeButton: {
+  headerContainer: {
+    flex: 1,
     alignItems: 'center',
   },
-  selectedUserType: {
-    // Add styles for selected user type button if needed
+  refreshButton: {
+    padding: 8,
+    marginTop: 4,
   },
-  userTypeIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#E0E0E0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  selectedUserTypeIcon: {
-    backgroundColor: '#E3F2FD',
-  },
-  userTypeText: {
-    fontSize: 16,
-    color: '#999',
-    fontWeight: '500',
-  },
-  selectedUserTypeText: {
-    color: '#4A90E2',
+  title: {
+    fontSize: 26,
     fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 8,
+    textAlign: 'center',
   },
-  requiredNotice: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 20,
+  subtitle: {
+    fontSize: 15,
+    color: '#666666',
+    textAlign: 'center',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 25,
+    padding: 4,
+    marginBottom: 24,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 22,
+  },
+  tabActive: {
+    backgroundColor: '#17A2B8',
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666666',
+  },
+  tabTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   errorContainer: {
     backgroundColor: '#FFEBEE',
@@ -574,38 +782,29 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#D32F2F',
     fontSize: 14,
-    fontWeight: '500',
   },
   formContainer: {
-    marginBottom: 25,
+    marginBottom: 24,
   },
-  customInputStyle: {
-    marginBottom: 8,
-  },
-  helperText: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 16,
-    marginLeft: 2,
-  },
-  successText: {
-    color: '#4CAF50',
-  },
-  errorHelperText: {
-    color: '#F44336',
-  },
-  genderLabel: {
-    fontSize: 15,
-    color: '#333',
-    marginBottom: 12,
+  label: {
+    fontSize: 13,
     fontWeight: '500',
+    color: '#1A1A1A',
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  input: {
+    marginBottom: 0,
   },
   genderContainer: {
-    marginBottom: 6,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 8,
   },
-  radioContainer: {
+  radioButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 20,
     marginBottom: 12,
   },
   radio: {
@@ -613,90 +812,114 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 9,
     borderWidth: 2,
-    borderColor: '#DDD',
-    marginRight: 10,
+    borderColor: '#D0D0D0',
+    marginRight: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   radioSelected: {
-    borderColor: '#4A90E2',
+    borderColor: '#17A2B8',
   },
   radioDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#4A90E2',
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: '#17A2B8',
   },
-  radioText: {
-    fontSize: 15,
-    color: '#333',
+  radioLabel: {
+    fontSize: 14,
+    color: '#1A1A1A',
   },
-  privacyContainer: {
-    marginBottom: 25,
+  checkboxGroup: {
+    marginTop: 8,
   },
-  checkboxContainer: {
+  checkboxItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 12,
   },
   checkbox: {
     width: 18,
     height: 18,
     borderRadius: 3,
     borderWidth: 2,
-    borderColor: '#DDD',
+    borderColor: '#D0D0D0',
     marginRight: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
   },
   checkboxChecked: {
-    backgroundColor: '#4A90E2',
-    borderColor: '#4A90E2',
+    backgroundColor: '#17A2B8',
+    borderColor: '#17A2B8',
   },
-  privacyText: {
-    fontSize: 14,
-    color: '#333',
+  checkboxLabel: {
+    fontSize: 13,
+    color: '#1A1A1A',
+  },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 24,
+    marginTop: 8,
+  },
+  termsText: {
     flex: 1,
+    fontSize: 12,
+    color: '#666666',
+    lineHeight: 18,
+    marginLeft: 10,
   },
-  privacyLink: {
-    color: '#4A90E2',
+  termsLink: {
+    color: '#17A2B8',
     textDecorationLine: 'underline',
   },
   registerButton: {
-    backgroundColor: '#999',
-    height: 48,
-    borderRadius: 6,
-    flexDirection: 'row',
+    backgroundColor: '#CCCCCC',
+    height: 50,
+    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 25,
-    opacity: 0.6,
+    marginBottom: 24,
   },
   registerButtonActive: {
-    backgroundColor: '#4A90E2',
-    opacity: 1,
+    backgroundColor: '#17A2B8',
   },
   registerButtonLoading: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#17A2B8',
     opacity: 0.7,
   },
-  registerIcon: {
-    marginRight: 8,
-  },
   registerButtonText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
   },
-  backContainer: {
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E0E0E0',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 13,
+    color: '#999999',
+  },
+  signInContainer: {
     alignItems: 'center',
   },
-  backText: {
-    color: '#4A90E2',
-    fontSize: 14,
-    fontWeight: '500',
+  signInText: {
+    fontSize: 13,
+    color: '#666666',
   },
-  backTextDisabled: {
-    opacity: 0.6,
+  signInLink: {
+    color: '#17A2B8',
+    fontWeight: '500',
+    textDecorationLine: 'underline',
   },
 });
 

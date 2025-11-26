@@ -1,5 +1,5 @@
 import { createAppSlice } from "../store/createAppSlice";
-import { userInfo } from "../models/auth";
+import { userInfo } from "../models/user";
 import { me, persistFcmToken } from "../networks/authcalls/me";
 import {
   removeKey,

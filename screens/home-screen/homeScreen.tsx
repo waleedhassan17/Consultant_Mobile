@@ -11,13 +11,12 @@ import {
   selectSearchQuery, selectTherapists, selectLoading, 
   selectError, toggleLanguage, selectLanguage,
   initializeLanguage, selectLanguageLoaded, setSortOption,
-  selectSortOption,
-  SortOption
+  selectSortOption
 } from './homeScreenSlice';
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import TherapistCard from '../../Custom-Components/TherapistCard';
-import SortModal from '../../Custom-Components/SortMenu';
+import TherapistCard from '../../custom-components/TherapistCard';
+import SortModal from '../../custom-components/SortMenu';
 
 type NavigationProp = NativeStackNavigationProp<any>;
 
@@ -33,11 +32,12 @@ export default function HomeScreen(): JSX.Element {
   const language = useAppSelector(selectLanguage);
   const languageLoaded = useAppSelector(selectLanguageLoaded);
   const sortOption = useAppSelector(selectSortOption);
+  const filters = useAppSelector(selectFilters);
+  const filterActive = useAppSelector(selectFilterActive);
   
   const [refreshing, setRefreshing] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [page, setPage] = useState(1);
   const [sortVisible, setSortVisible] = useState(false);
+  const [filterVisible, setFilterVisible] = useState(false);
 
   // Sort therapists based on selected option
   const sortedTherapists = [...therapists].sort((a, b) => {
@@ -55,9 +55,6 @@ export default function HomeScreen(): JSX.Element {
     }
   });
 
-  // Replicate therapists for testing scroll functionality
-  const replicatedTherapists = [...sortedTherapists, ...sortedTherapists, ...sortedTherapists];
-
   // Initialize language from AsyncStorage on app start
   useEffect(() => {
     dispatch(initializeLanguage());
@@ -73,7 +70,6 @@ export default function HomeScreen(): JSX.Element {
   // Pull to refresh handler
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setPage(1);
     try {
       await dispatch(loadTherapists());
     } catch (error) {
@@ -82,35 +78,6 @@ export default function HomeScreen(): JSX.Element {
       setRefreshing(false);
     }
   }, [dispatch]);
-
-  // Lazy loading handler
-  const handleScroll = useCallback((event: any) => {
-    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-    
-    const paddingToBottom = 100;
-    const isCloseToBottom = 
-      layoutMeasurement.height + contentOffset.y >= 
-      contentSize.height - paddingToBottom;
-    
-    if (isCloseToBottom && !isLoadingMore && !loading && !refreshing) {
-      loadMoreTherapists();
-    }
-  }, [isLoadingMore, loading, refreshing]);
-
-  // Load more therapists
-  const loadMoreTherapists = useCallback(async () => {
-    if (isLoadingMore || loading) return;
-    
-    setIsLoadingMore(true);
-    try {
-      await dispatch(loadTherapists());
-      setPage(prevPage => prevPage + 1);
-    } catch (error) {
-      console.error('Load more error:', error);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }, [dispatch, isLoadingMore, loading]);
 
   const handleLanguageToggle = (): void => {
     dispatch(toggleLanguage());
@@ -123,6 +90,15 @@ export default function HomeScreen(): JSX.Element {
   const handleSortSelect = (option: SortOption): void => {
     dispatch(setSortOption(option));
     setSortVisible(false);
+  };
+
+  const handleFilterToggle = (): void => {
+    setFilterVisible(true);
+  };
+
+  const handleFilterApply = (newFilters: FilterState): void => {
+    dispatch(setFilters(newFilters));
+    setFilterVisible(false);
   };
 
   // Show loading while language is being initialized
@@ -182,8 +158,6 @@ export default function HomeScreen(): JSX.Element {
 
       <ScrollView 
         style={styles.content}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
         showsVerticalScrollIndicator={true}
         refreshControl={
           <RefreshControl
@@ -227,28 +201,41 @@ export default function HomeScreen(): JSX.Element {
         </View>
 
         {/* Filter and Sort Buttons */}
-        <View style={[styles.filterContainer, isRTL && styles.filterContainerRTL]}>
-          <TouchableOpacity 
-            style={styles.filterButton}
-            onPress={() => dispatch(toggleFilter())}
-          >
-            <Ionicons name="options" size={16} color="#60a899" />
-            <Text style={styles.filterText}>{t('home.filters')}</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.sortButton}
-            onPress={() => setSortVisible(true)}
-          >
-            <Text style={styles.sortText}>{t('home.sortBy')}</Text>
-            <Ionicons name="chevron-down" size={16} color="#60a899" />
-          </TouchableOpacity>
-        </View>
+<View style={[styles.filterContainer, isRTL && styles.filterContainerRTL]}>
+  <TouchableOpacity 
+    style={[styles.filterButton, filterActive && styles.filterButtonActive]}
+    onPress={handleFilterToggle}
+  >
+    <Ionicons name="options" size={16} color={filterActive ? "#fff" : "#60a899"} />
+    <Text style={[styles.filterText, filterActive && styles.filterTextActive]}>
+      {t('home.filters')}
+    </Text>
+    {filterActive && (
+      <View style={styles.activeFilterBadge}>
+        <Text style={styles.activeFilterBadgeText}>●</Text>
+      </View>
+    )}
+  </TouchableOpacity>
+  
+  <TouchableOpacity 
+    style={styles.sortButton}
+    onPress={() => setSortVisible(true)}
+  >
+    <Text style={styles.sortText}>{t('home.sortBy')}</Text>
+    <Ionicons name="chevron-down" size={16} color="#60a899" />
+  </TouchableOpacity>
+</View>
 
         {/* Error Message */}
         {error && (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity 
+              style={styles.retryButton}
+              onPress={() => dispatch(loadTherapists())}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -260,21 +247,30 @@ export default function HomeScreen(): JSX.Element {
           </View>
         ) : (
           <>
-            {/* Therapists List using TherapistCard Component */}
-            <View style={styles.therapistsList}>
-              {replicatedTherapists.map((therapist, index) => (
-                <TherapistCard 
-                  key={`${therapist.id}-${index}`} 
-                  therapist={therapist} 
-                />
-              ))}
-            </View>
-
-            {/* Load More Indicator */}
-            {isLoadingMore && (
-              <View style={styles.loadingMoreContainer}>
-                <ActivityIndicator size="small" color="#2196F3" />
-                <Text style={styles.loadingMoreText}>Loading more therapists...</Text>
+            {/* Therapists List */}
+            {sortedTherapists.length > 0 ? (
+              <View style={styles.therapistsList}>
+                {sortedTherapists.map((therapist, index) => (
+                  <TherapistCard 
+                    key={`${therapist.id}-${index}`} 
+                    therapist={therapist} 
+                  />
+                ))}
+              </View>
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="search-outline" size={64} color="#ccc" />
+                <Text style={styles.emptyText}>
+                  {searchQuery ? 'No therapists found matching your search' : 'No therapists available'}
+                </Text>
+                {searchQuery && (
+                  <TouchableOpacity 
+                    style={styles.clearSearchButton}
+                    onPress={() => handleSearch('')}
+                  >
+                    <Text style={styles.clearSearchText}>Clear Search</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
           </>
@@ -286,6 +282,14 @@ export default function HomeScreen(): JSX.Element {
         visible={sortVisible} 
         onClose={() => setSortVisible(false)} 
         onSelect={handleSortSelect} 
+      />
+
+      {/* Filter Modal */}
+      <FilterModal
+        visible={filterVisible}
+        onClose={() => setFilterVisible(false)}
+        onApply={handleFilterApply}
+        initialFilters={filters}
       />
     </SafeAreaView>
   );
@@ -488,11 +492,25 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     marginBottom: 20,
+    alignItems: 'center',
   },
   errorText: {
     color: '#c62828',
     fontSize: 14,
     textAlign: 'center',
+    marginBottom: 10,
+  },
+  retryButton: {
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginTop: 5,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   initialLoadingContainer: {
     paddingVertical: 60,
@@ -508,19 +526,46 @@ const styles = StyleSheet.create({
     gap: 20,
     paddingBottom: 30,
   },
+  emptyContainer: {
+    paddingVertical: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    marginTop: 16,
+    color: '#666',
+    fontSize: 16,
+    textAlign: 'center',
+    paddingHorizontal: 40,
+  },
+  clearSearchButton: {
+    marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    backgroundColor: '#2196F3',
+    borderRadius: 20,
+  },
+  clearSearchText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   textRTL: {
     textAlign: 'right',
     writingDirection: 'rtl',
   },
-  loadingMoreContainer: {
-    paddingVertical: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
+   filterButtonActive: {
+    backgroundColor: '#60a899',
+    borderColor: '#60a899',
   },
-  loadingMoreText: {
-    marginTop: 8,
-    color: '#666',
-    fontSize: 14,
+  filterTextActive: {
+    color: '#fff',
+  },
+  activeFilterBadge: {
+    marginLeft: 4,
+  },
+  activeFilterBadgeText: {
+    color: '#fff',
+    fontSize: 8,
   },
 });

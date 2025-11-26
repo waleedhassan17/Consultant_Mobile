@@ -1,7 +1,7 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createAppSlice } from "../../store/createAppSlice";
 import { authLogin } from "../../networks/authcalls/signin";
-import { signInSliceState, UserTypeValue, signInPayload } from "../../models/auth";
+import { signInSliceState, UserTypeValue, signInPayload } from "../../models/user";
 import {
   KeyForStorage,
   saveData,
@@ -19,19 +19,30 @@ const initialState: signInSliceState = {
   user: null,
 };
 
-
 export const signInSlice = createAppSlice({
   name: "signIn",
   initialState,
   reducers: (create) => ({
     setEmail: create.reducer((state, action: PayloadAction<string>) => {
       state.email = action.payload;
+      // Clear error when user types
+      if (state.error) {
+        state.error = "";
+      }
     }),
     setPassword: create.reducer((state, action: PayloadAction<string>) => {
       state.password = action.payload;
+      // Clear error when user types
+      if (state.error) {
+        state.error = "";
+      }
     }),
     setSelectedUserType: create.reducer((state, action: PayloadAction<UserTypeValue>) => {
       state.selectedUserType = action.payload;
+      // Clear error when user selects type
+      if (state.error) {
+        state.error = "";
+      }
     }),
     togglePasswordVisibility: create.reducer((state) => {
       state.showPassword = !state.showPassword;
@@ -43,6 +54,7 @@ export const signInSlice = createAppSlice({
       state.accessToken = action.payload;
     }),
     logout: create.reducer((state) => {
+      // Reset all state to initial values (form reset functionality)
       state.email = "";
       state.password = "";
       state.showPassword = false;
@@ -74,14 +86,11 @@ export const signInSlice = createAppSlice({
 
           const result = await authLogin({ signInInfo: payload });
           
-          // authLogin already returns the data object directly
-          // No need to access result.data
           console.log("📥 submitSignInAsync received result:", JSON.stringify(result, null, 2));
           
           return result;
         } catch (error: any) {
           console.log("❌ submitSignInAsync caught error:", error.message);
-          // Return the error message so Redux can handle it properly
           return rejectWithValue(error.message || "Sign in failed");
         }
       },
@@ -119,8 +128,8 @@ export const signInSlice = createAppSlice({
           // Use action.payload if available (from rejectWithValue), otherwise use error.message
           state.error = (action.payload as string) || action.error.message || "Sign in failed";
           
-          // Show alert with the error message
-          alert(state.error);
+          // Note: Alert is now handled in the component for better UX
+          console.log("Error set in state:", state.error);
         },
       }
     ),
@@ -139,6 +148,15 @@ export const signInSlice = createAppSlice({
     selectUserType: (state) => state.user?.userType,
     selectUserId: (state) => state.user?.id,
     selectUserNickname: (state) => state.user?.nickname,
+    // Additional selectors to match UI state
+    selectIsLoading: (state) => state.status === "loading",
+    // ✅ FIXED: Changed 'visitor' to 'consultant' and 'therapist' to 'corporate'
+    selectIsConsultant: (state) => state.selectedUserType === 'consultant',
+    selectIsCorporate: (state) => state.selectedUserType === 'corporate',
+    selectIsFormComplete: (state) => 
+      !!state.selectedUserType && 
+      state.email.trim().length > 0 && 
+      state.password.trim().length > 0,
   },
 });
 
@@ -166,4 +184,8 @@ export const {
   selectUserType,
   selectUserId,
   selectUserNickname,
+  selectIsLoading,
+  selectIsConsultant,
+  selectIsCorporate,
+  selectIsFormComplete,
 } = signInSlice.selectors;
