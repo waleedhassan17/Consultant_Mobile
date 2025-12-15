@@ -60,6 +60,8 @@ import {
   resetForm,
   submitSignUpAsync,
 } from './SignUpSlice';
+// IMPORTANT: Import setCurrentUser to update app state after registration
+import { setCurrentUser } from '../../components/appContainerSlice';
 import CustomInput from '../../custom-components/CustomInput';
 import {
   SingleSelectPicker,
@@ -108,7 +110,6 @@ const SignUp = () => {
   const isLoading = status === "loading";
   const isConsultant = selectedUserType === 'consultant';
   const isCorporate = selectedUserType === 'corporate';
-  const isDefaultUser = !selectedUserType || selectedUserType === 'user';
 
   useEffect(() => {
     if (error) {
@@ -124,7 +125,6 @@ const SignUp = () => {
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
     dispatch(resetForm());
-    // Simulate a brief delay for better UX
     setTimeout(() => {
       setRefreshing(false);
       Alert.alert('Form Reset', 'You can now select a new user type');
@@ -136,36 +136,33 @@ const SignUp = () => {
   };
 
   const handleUserTypeSelect = (userType: 'consultant' | 'corporate') => {
-    dispatch(setSelectedUserType(userType));
+    // If same tab clicked again, deselect it (back to 'user')
+    if (selectedUserType === userType) {
+      dispatch(setSelectedUserType(null));
+      console.log('🔵 Tab deselected, will register as user');
+    } else {
+      dispatch(setSelectedUserType(userType));
+      console.log('🔵 Tab selected:', userType);
+    }
+    
     if (error) {
       dispatch(clearError());
     }
   };
 
   const validateForm = () => {
-    // If default user registration (no tab selected)
-    if (isDefaultUser) {
-      if (!firstName.trim()) {
-        Alert.alert('Error', 'Please enter your first name');
-        return false;
-      }
-      if (!lastName.trim()) {
-        Alert.alert('Error', 'Please enter your last name');
-        return false;
-      }
-      // No additional fields required for default user registration
+    // Common validation for all types
+    if (!firstName.trim()) {
+      Alert.alert('Error', 'Please enter your first name');
+      return false;
+    }
+    if (!lastName.trim()) {
+      Alert.alert('Error', 'Please enter your last name');
+      return false;
     }
 
     // Consultant validation
     if (isConsultant) {
-      if (!firstName.trim()) {
-        Alert.alert('Error', 'Please enter your first name');
-        return false;
-      }
-      if (!lastName.trim()) {
-        Alert.alert('Error', 'Please enter your last name');
-        return false;
-      }
       if (!discipline.trim()) {
         Alert.alert('Error', 'Please select a discipline');
         return false;
@@ -188,14 +185,6 @@ const SignUp = () => {
     if (isCorporate) {
       if (!companyName.trim()) {
         Alert.alert('Error', 'Please enter your company name');
-        return false;
-      }
-      if (!firstName.trim()) {
-        Alert.alert('Error', 'Please enter your first name');
-        return false;
-      }
-      if (!lastName.trim()) {
-        Alert.alert('Error', 'Please enter your last name');
         return false;
       }
       if (!industryType.trim()) {
@@ -225,8 +214,21 @@ const SignUp = () => {
       return false;
     }
 
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long');
+    if (password.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters long');
+      return false;
+    }
+
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    if (!hasUpperCase || !hasLowerCase || !hasNumber || !hasSpecialChar) {
+      Alert.alert(
+        'Weak Password', 
+        'Password must include:\n• At least one uppercase letter\n• At least one lowercase letter\n• At least one number\n• At least one special character (!@#$%^&*...)'
+      );
       return false;
     }
 
@@ -263,6 +265,15 @@ const SignUp = () => {
     }
 
     try {
+      // Use 'user' as default if no tab selected
+      const userTypeToUse = selectedUserType || 'user';
+      
+      console.log('========================================');
+      console.log('📝 REGISTERING');
+      console.log('🔹 Email:', email.trim());
+      console.log('🔹 User Type:', userTypeToUse);
+      console.log('========================================');
+      
       const registrationData = {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
@@ -272,7 +283,7 @@ const SignUp = () => {
         country: country.trim(),
         preferredCurrency: preferredCurrency.trim(),
         gender: gender!,
-        userType: selectedUserType, // Can be null for default user registration
+        userType: userTypeToUse,
         discipline: discipline.trim(),
         languagesSpoken,
         availableForIndividual,
@@ -286,27 +297,50 @@ const SignUp = () => {
 
       const result = await dispatch(submitSignUpAsync(registrationData)).unwrap();
 
+      console.log('========================================');
+      console.log('✅ REGISTRATION SUCCESSFUL');
+      console.log('🔹 User:', result.user?.email);
+      console.log('🔹 Type:', result.user?.userType);
+      console.log('========================================');
+
+      // CRITICAL: Update appContainerSlice with the registered user
+      // This triggers AppContainer to switch to the correct navigator
+      if (result.user) {
+        dispatch(setCurrentUser(result.user));
+        console.log('📱 AppContainer updated with user type:', result.user.userType);
+      }
+
+      // Determine welcome message based on user type
+      const userTypeLabel = result.user?.userType === 'consultant' 
+        ? 'Consultant' 
+        : result.user?.userType === 'corporate' 
+          ? 'Corporate User'
+          : 'User';
+
       Alert.alert(
-        'Success',
-        'Registration successful! Welcome!',
+        '✅ Success',
+        `Registration successful as ${userTypeLabel}! Please check your email to verify your account.`,
         [
           {
             text: 'Continue',
             onPress: () => {
-              try {
-                (navigation as any).navigate('Home');
-              } catch (navigationError) {
-                (navigation as any).reset({
-                  index: 0,
-                  routes: [{ name: 'Home' }],
-                });
-              }
+              // Navigation will be handled automatically by AppContainer
+              console.log('📱 Navigation will be handled by AppContainer');
             }
           }
         ]
       );
     } catch (err: any) {
-      Alert.alert('Registration Failed', err || 'Registration failed. Please try again.');
+      const errorMessage = err?.message || err || 'Registration failed. Please try again.';
+      const formattedError = typeof errorMessage === 'string' 
+        ? errorMessage 
+        : 'An unexpected error occurred. Please try again.';
+      
+      Alert.alert(
+        '❌ Registration Failed', 
+        formattedError,
+        [{ text: 'OK', style: 'cancel' }]
+      );
     }
   };
 
@@ -315,6 +349,14 @@ const SignUp = () => {
       index: 0,
       routes: [{ name: 'SignIn' }],
     });
+  };
+
+  // Determine button text based on selection
+  const getButtonText = () => {
+    if (isLoading) return 'Signing up...';
+    if (isConsultant) return 'Sign Up as Consultant';
+    if (isCorporate) return 'Sign Up as Corporate';
+    return 'Sign Up as User';
   };
 
   return (
@@ -339,7 +381,11 @@ const SignUp = () => {
             <View style={styles.headerContainer}>
               <Text style={styles.title}>Create your account</Text>
               <Text style={styles.subtitle}>
-                {isDefaultUser ? 'Sign up as User' : 'Register as a'}
+                {isConsultant 
+                  ? 'Register as a Consultant' 
+                  : isCorporate 
+                    ? 'Register as Corporate' 
+                    : 'Select type or continue as User'}
               </Text>
             </View>
             <TouchableOpacity 
@@ -351,7 +397,7 @@ const SignUp = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Tab Selection - Only Consultant and Corporate */}
+          {/* Tab Selection */}
           <View style={styles.tabContainer}>
             <TouchableOpacity
               style={[
@@ -387,6 +433,17 @@ const SignUp = () => {
                 Corporate
               </Text>
             </TouchableOpacity>
+          </View>
+
+          {/* User type indicator */}
+          <View style={styles.userTypeIndicator}>
+            <Text style={styles.userTypeText}>
+              {isConsultant 
+                ? '👨‍⚕️ Registering as Consultant'
+                : isCorporate 
+                  ? '🏢 Registering as Corporate'
+                  : '👤 Registering as User (no tab selected)'}
+            </Text>
           </View>
 
           {/* Error Display */}
@@ -435,7 +492,7 @@ const SignUp = () => {
               editable={!isLoading && !refreshing}
             />
 
-            {/* Email (Corporate shows "Corporate Email") */}
+            {/* Email */}
             <Text style={styles.label}>{isCorporate ? 'Corporate Email *' : 'Email *'}</Text>
             <CustomInput
               placeholder="Enter your email address"
@@ -462,6 +519,11 @@ const SignUp = () => {
               style={styles.input}
               editable={!isLoading && !refreshing}
             />
+            {password && password.length > 0 && password.length < 8 && (
+              <Text style={styles.passwordHint}>
+                ⚠️ Password must include: 8+ characters, uppercase, lowercase, number, and special character
+              </Text>
+            )}
 
             {/* Confirm Password */}
             <Text style={styles.label}>Password Confirmation *</Text>
@@ -477,6 +539,11 @@ const SignUp = () => {
               style={styles.input}
               editable={!isLoading && !refreshing}
             />
+            {confirmPassword && password !== confirmPassword && (
+              <Text style={styles.errorHint}>
+                ❌ Passwords do not match
+              </Text>
+            )}
 
             {/* Corporate specific field - Industry Type */}
             {isCorporate && (
@@ -680,14 +747,7 @@ const SignUp = () => {
             disabled={!isFormValid || isLoading || refreshing}
           >
             <Text style={styles.registerButtonText}>
-              {isLoading 
-                ? 'Signing up...' 
-                : isConsultant
-                  ? 'Sign Up as Consultant'
-                  : isCorporate
-                    ? 'Sign Up as Corporate'
-                    : 'Sign Up as User'
-              }
+              {getButtonText()}
             </Text>
           </TouchableOpacity>
 
@@ -760,7 +820,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
     borderRadius: 25,
     padding: 4,
-    marginBottom: 24,
+    marginBottom: 12,
   },
   tab: {
     flex: 1,
@@ -779,6 +839,18 @@ const styles = StyleSheet.create({
   tabTextActive: {
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  userTypeIndicator: {
+    backgroundColor: '#E3F2FD',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  userTypeText: {
+    fontSize: 13,
+    color: '#1976D2',
+    fontWeight: '500',
   },
   errorContainer: {
     backgroundColor: '#FFEBEE',
@@ -929,6 +1001,22 @@ const styles = StyleSheet.create({
     color: '#17A2B8',
     fontWeight: '500',
     textDecorationLine: 'underline',
+  },
+  passwordHint: {
+    fontSize: 11,
+    color: '#FF9800',
+    marginTop: 4,
+    marginBottom: 8,
+    marginLeft: 4,
+    lineHeight: 16,
+  },
+  errorHint: {
+    fontSize: 11,
+    color: '#FF5252',
+    marginTop: 4,
+    marginBottom: 8,
+    marginLeft: 4,
+    fontWeight: '500',
   },
 });
 

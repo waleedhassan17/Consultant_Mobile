@@ -7,109 +7,177 @@ import {
   Modal,
   FlatList,
   TextInput,
-  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+// ============ OPTION TYPE ============
+ export interface PickerOption {
+  label: string;
+  value: string;
+}
+
 // ============ DATA LISTS ============
-const COUNTRIES = [
-  'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany',
-  'France', 'Spain', 'Italy', 'Netherlands', 'Belgium', 'Switzerland',
-  'Sweden', 'Norway', 'Denmark', 'Finland', 'Ireland', 'Austria',
-  'Portugal', 'Greece', 'Poland', 'Czech Republic', 'Hungary',
-  'Japan', 'South Korea', 'Singapore', 'Hong Kong', 'India',
-  'China', 'Brazil', 'Mexico', 'Argentina', 'Chile', 'Colombia',
-  'United Arab Emirates', 'Saudi Arabia', 'Israel', 'Turkey',
-  'South Africa', 'Egypt', 'Nigeria', 'Kenya', 'Pakistan',
-  'Bangladesh', 'Indonesia', 'Malaysia', 'Thailand', 'Vietnam',
-  'Philippines', 'New Zealand', 'Russia', 'Ukraine'
-].sort();
+// NOTE: Country IDs should match your backend's spree_countries table
+// You may need to fetch these from your API or update IDs to match your database
+const COUNTRIES: PickerOption[] = [
+  { label: 'United States', value: '233' },
+  { label: 'United Kingdom', value: '232' },
+  { label: 'Canada', value: '39' },
+  { label: 'Australia', value: '14' },
+  { label: 'Germany', value: '82' },
+  { label: 'France', value: '75' },
+  { label: 'Spain', value: '67' },
+  { label: 'Italy', value: '110' },
+  { label: 'Netherlands', value: '166' },
+  { label: 'Belgium', value: '22' },
+  { label: 'Switzerland', value: '214' },
+  { label: 'Sweden', value: '213' },
+  { label: 'Norway', value: '166' },
+  { label: 'Denmark', value: '59' },
+  { label: 'Finland', value: '74' },
+  { label: 'Ireland', value: '105' },
+  { label: 'Austria', value: '15' },
+  { label: 'Portugal', value: '177' },
+  { label: 'Greece', value: '85' },
+  { label: 'Poland', value: '176' },
+  { label: 'Czech Republic', value: '58' },
+  { label: 'Hungary', value: '99' },
+  { label: 'Japan', value: '112' },
+  { label: 'South Korea', value: '117' },
+  { label: 'Singapore', value: '199' },
+  { label: 'Hong Kong', value: '97' },
+  { label: 'India', value: '101' },
+  { label: 'China', value: '45' },
+  { label: 'Brazil', value: '31' },
+  { label: 'Mexico', value: '143' },
+  { label: 'Argentina', value: '11' },
+  { label: 'Chile', value: '44' },
+  { label: 'Colombia', value: '48' },
+  { label: 'United Arab Emirates', value: '231' },
+  { label: 'Saudi Arabia', value: '194' },
+  { label: 'Israel', value: '107' },
+  { label: 'Turkey', value: '225' },
+  { label: 'South Africa', value: '206' },
+  { label: 'Egypt', value: '65' },
+  { label: 'Nigeria', value: '160' },
+  { label: 'Kenya', value: '114' },
+  { label: 'Pakistan', value: '167' },
+  { label: 'Bangladesh', value: '19' },
+  { label: 'Indonesia', value: '102' },
+  { label: 'Malaysia', value: '134' },
+  { label: 'Thailand', value: '219' },
+  { label: 'Vietnam', value: '238' },
+  { label: 'Philippines', value: '174' },
+  { label: 'New Zealand', value: '158' },
+  { label: 'Russia', value: '182' },
+  { label: 'Ukraine', value: '230' },
+].sort((a, b) => a.label.localeCompare(b.label));
 
-const CURRENCIES = ['USD'];
+// Currency options - these are string values, not IDs
+const CURRENCIES: PickerOption[] = [
+  { label: 'USD - US Dollar', value: 'USD' },
+  { label: 'EUR - Euro', value: 'EUR' },
+  { label: 'GBP - British Pound', value: 'GBP' },
+  { label: 'CAD - Canadian Dollar', value: 'CAD' },
+  { label: 'AUD - Australian Dollar', value: 'AUD' },
+  { label: 'JPY - Japanese Yen', value: 'JPY' },
+  { label: 'CHF - Swiss Franc', value: 'CHF' },
+  { label: 'CNY - Chinese Yuan', value: 'CNY' },
+  { label: 'INR - Indian Rupee', value: 'INR' },
+  { label: 'SGD - Singapore Dollar', value: 'SGD' },
+  { label: 'AED - UAE Dirham', value: 'AED' },
+  { label: 'SAR - Saudi Riyal', value: 'SAR' },
+];
 
-const LANGUAGES = [
-  'English',
-  'Arabic',
-  'Spanish',
-  'French',
-  'German',
-  'Chinese',
-  'Japanese',
-  'Korean',
-  'Hindi',
-  'Portuguese',
-  'Russian',
-  'Italian',
-  'Dutch',
-  'Turkish',
-  'Polish',
-  'Swedish',
-  'Danish',
-  'Norwegian',
-  'Finnish'
-].sort();
+// Languages - these are string values stored in spoken_languages array
+const LANGUAGES: PickerOption[] = [
+  { label: 'English', value: 'English' },
+  { label: 'Arabic', value: 'Arabic' },
+  { label: 'Spanish', value: 'Spanish' },
+  { label: 'French', value: 'French' },
+  { label: 'German', value: 'German' },
+  { label: 'Chinese', value: 'Chinese' },
+  { label: 'Japanese', value: 'Japanese' },
+  { label: 'Korean', value: 'Korean' },
+  { label: 'Hindi', value: 'Hindi' },
+  { label: 'Portuguese', value: 'Portuguese' },
+  { label: 'Russian', value: 'Russian' },
+  { label: 'Italian', value: 'Italian' },
+  { label: 'Dutch', value: 'Dutch' },
+  { label: 'Turkish', value: 'Turkish' },
+  { label: 'Polish', value: 'Polish' },
+  { label: 'Swedish', value: 'Swedish' },
+  { label: 'Danish', value: 'Danish' },
+  { label: 'Norwegian', value: 'Norwegian' },
+  { label: 'Finnish', value: 'Finnish' },
+  { label: 'Urdu', value: 'Urdu' },
+].sort((a, b) => a.label.localeCompare(b.label));
 
-const DISCIPLINES = [
-  'Software Engineering',
-  'Data Science',
-  'Product Management',
-  'UX/UI Design',
-  'Marketing',
-  'Sales',
-  'Finance',
-  'Human Resources',
-  'Operations',
-  'Legal',
-  'Consulting',
-  'Business Strategy',
-  'Project Management',
-  'Quality Assurance',
-  'DevOps',
-  'Cybersecurity',
-  'Customer Success',
-  'Business Analysis',
-  'Engineering Management',
-  'Other'
-].sort();
+// NOTE: Discipline IDs should match your backend's disciplines table
+// You may need to fetch these from your API or update IDs to match your database
+const DISCIPLINES: PickerOption[] = [
+  { label: 'Software Engineering', value: '1' },
+  { label: 'Data Science', value: '2' },
+  { label: 'Product Management', value: '3' },
+  { label: 'UX/UI Design', value: '4' },
+  { label: 'Marketing', value: '5' },
+  { label: 'Sales', value: '6' },
+  { label: 'Finance', value: '7' },
+  { label: 'Human Resources', value: '8' },
+  { label: 'Operations', value: '9' },
+  { label: 'Legal', value: '10' },
+  { label: 'Consulting', value: '11' },
+  { label: 'Business Strategy', value: '12' },
+  { label: 'Project Management', value: '13' },
+  { label: 'Quality Assurance', value: '14' },
+  { label: 'DevOps', value: '15' },
+  { label: 'Cybersecurity', value: '16' },
+  { label: 'Customer Success', value: '17' },
+  { label: 'Business Analysis', value: '18' },
+  { label: 'Engineering Management', value: '19' },
+  { label: 'Other', value: '20' },
+].sort((a, b) => a.label.localeCompare(b.label));
 
-const INDUSTRIES = [
-  'Technology',
-  'Healthcare',
-  'Finance',
-  'Education',
-  'Retail',
-  'Manufacturing',
-  'Real Estate',
-  'Telecommunications',
-  'Energy',
-  'Transportation',
-  'Media & Entertainment',
-  'Hospitality',
-  'Agriculture',
-  'Construction',
-  'Professional Services',
-  'Government',
-  'Non-Profit',
-  'Pharmaceutical',
-  'Automotive',
-  'Other'
-].sort();
+// Industry types - these are string values
+const INDUSTRIES: PickerOption[] = [
+  { label: 'Technology', value: 'Technology' },
+  { label: 'Healthcare', value: 'Healthcare' },
+  { label: 'Finance', value: 'Finance' },
+  { label: 'Education', value: 'Education' },
+  { label: 'Retail', value: 'Retail' },
+  { label: 'Manufacturing', value: 'Manufacturing' },
+  { label: 'Real Estate', value: 'Real Estate' },
+  { label: 'Telecommunications', value: 'Telecommunications' },
+  { label: 'Energy', value: 'Energy' },
+  { label: 'Transportation', value: 'Transportation' },
+  { label: 'Media & Entertainment', value: 'Media & Entertainment' },
+  { label: 'Hospitality', value: 'Hospitality' },
+  { label: 'Agriculture', value: 'Agriculture' },
+  { label: 'Construction', value: 'Construction' },
+  { label: 'Professional Services', value: 'Professional Services' },
+  { label: 'Government', value: 'Government' },
+  { label: 'Non-Profit', value: 'Non-Profit' },
+  { label: 'Pharmaceutical', value: 'Pharmaceutical' },
+  { label: 'Automotive', value: 'Automotive' },
+  { label: 'Other', value: 'Other' },
+].sort((a, b) => a.label.localeCompare(b.label));
 
-const COMPANY_SIZES = [
-  '1-10 employees',
-  '11-50 employees',
-  '51-200 employees',
-  '201-500 employees',
-  '501-1000 employees',
-  '1001-5000 employees',
-  '5000+ employees'
+// Company sizes - these are string values
+const COMPANY_SIZES: PickerOption[] = [
+  { label: '1-10 employees', value: '1-10' },
+  { label: '11-50 employees', value: '11-50' },
+  { label: '51-200 employees', value: '51-200' },
+  { label: '201-500 employees', value: '201-500' },
+  { label: '501-1000 employees', value: '501-1000' },
+  { label: '1001-5000 employees', value: '1001-5000' },
+  { label: '5000+ employees', value: '5000+' },
 ];
 
 // ============ SINGLE SELECT PICKER ============
 interface SingleSelectPickerProps {
   title: string;
   value: string;
-  options: string[];
+  options: PickerOption[];
   onSelect: (value: string) => void;
   placeholder: string;
   disabled?: boolean;
@@ -126,12 +194,16 @@ const SingleSelectPicker: React.FC<SingleSelectPickerProps> = ({
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Find the selected option to display its label
+  const selectedOption = options.find(opt => opt.value === value);
+  const displayText = selectedOption?.label || '';
+
   const filteredOptions = options.filter(option =>
-    option.toLowerCase().includes(searchQuery.toLowerCase())
+    option.label.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSelect = (option: string) => {
-    onSelect(option);
+  const handleSelect = (option: PickerOption) => {
+    onSelect(option.value);
     setModalVisible(false);
     setSearchQuery('');
   };
@@ -144,7 +216,7 @@ const SingleSelectPicker: React.FC<SingleSelectPickerProps> = ({
         disabled={disabled}
       >
         <Text style={[styles.dropdownText, !value && styles.dropdownPlaceholder]}>
-          {value || placeholder}
+          {displayText || placeholder}
         </Text>
         <Ionicons name="chevron-down" size={20} color="#999" />
       </TouchableOpacity>
@@ -184,22 +256,22 @@ const SingleSelectPicker: React.FC<SingleSelectPickerProps> = ({
 
             <FlatList
               data={filteredOptions}
-              keyExtractor={(item) => item}
+              keyExtractor={(item) => item.value}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={[
                     styles.listItem,
-                    value === item && styles.listItemSelected
+                    value === item.value && styles.listItemSelected
                   ]}
                   onPress={() => handleSelect(item)}
                 >
                   <Text style={[
                     styles.listItemText,
-                    value === item && styles.listItemTextSelected
+                    value === item.value && styles.listItemTextSelected
                   ]}>
-                    {item}
+                    {item.label}
                   </Text>
-                  {value === item && (
+                  {value === item.value && (
                     <Ionicons name="checkmark" size={20} color="#17A2B8" />
                   )}
                 </TouchableOpacity>
@@ -218,7 +290,7 @@ const SingleSelectPicker: React.FC<SingleSelectPickerProps> = ({
 interface MultiSelectPickerProps {
   title: string;
   selectedValues: string[];
-  options: string[];
+  options: PickerOption[];
   onSelect: (values: string[]) => void;
   placeholder: string;
   disabled?: boolean;
@@ -236,15 +308,23 @@ const MultiSelectPicker: React.FC<MultiSelectPickerProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [tempSelected, setTempSelected] = useState<string[]>(selectedValues);
 
+  // Get labels for selected values
+  const getSelectedLabels = () => {
+    return selectedValues
+      .map(val => options.find(opt => opt.value === val)?.label)
+      .filter(Boolean)
+      .join(', ');
+  };
+
   const filteredOptions = options.filter(option =>
-    option.toLowerCase().includes(searchQuery.toLowerCase())
+    option.label.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleToggle = (option: string) => {
-    if (tempSelected.includes(option)) {
-      setTempSelected(tempSelected.filter(item => item !== option));
+  const handleToggle = (option: PickerOption) => {
+    if (tempSelected.includes(option.value)) {
+      setTempSelected(tempSelected.filter(item => item !== option.value));
     } else {
-      setTempSelected([...tempSelected, option]);
+      setTempSelected([...tempSelected, option.value]);
     }
   };
 
@@ -271,7 +351,7 @@ const MultiSelectPicker: React.FC<MultiSelectPickerProps> = ({
         disabled={disabled}
       >
         <Text style={[styles.dropdownText, selectedValues.length === 0 && styles.dropdownPlaceholder]}>
-          {selectedValues.length > 0 ? selectedValues.join(', ') : placeholder}
+          {selectedValues.length > 0 ? getSelectedLabels() : placeholder}
         </Text>
         <Ionicons name="chevron-down" size={20} color="#999" />
       </TouchableOpacity>
@@ -322,22 +402,22 @@ const MultiSelectPicker: React.FC<MultiSelectPickerProps> = ({
 
             <FlatList
               data={filteredOptions}
-              keyExtractor={(item) => item}
+              keyExtractor={(item) => item.value}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={[
                     styles.listItem,
-                    tempSelected.includes(item) && styles.listItemSelected
+                    tempSelected.includes(item.value) && styles.listItemSelected
                   ]}
                   onPress={() => handleToggle(item)}
                 >
                   <Text style={[
                     styles.listItemText,
-                    tempSelected.includes(item) && styles.listItemTextSelected
+                    tempSelected.includes(item.value) && styles.listItemTextSelected
                   ]}>
-                    {item}
+                    {item.label}
                   </Text>
-                  {tempSelected.includes(item) && (
+                  {tempSelected.includes(item.value) && (
                     <Ionicons name="checkmark" size={20} color="#17A2B8" />
                   )}
                 </TouchableOpacity>
@@ -482,5 +562,6 @@ export {
   LANGUAGES,
   DISCIPLINES,
   INDUSTRIES,
-  COMPANY_SIZES
+  COMPANY_SIZES,
+ 
 };

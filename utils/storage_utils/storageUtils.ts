@@ -15,15 +15,17 @@ export const saveData = async (key: string, value: any): Promise<void> => {
   try {
     const jsonValue = typeof value === "string" ? value : JSON.stringify(value);
     await AsyncStorage.setItem(key, jsonValue);
+    console.log(`💾 Saved ${key}:`, typeof value === 'string' ? value : '[object]');
   } catch (e) {
     console.error(`Error saving data for key ${key}:`, e);
     throw e;
   }
 };
 
-const removeKey = async (key: string): Promise<void> => {
+export const removeKey = async (key: string): Promise<void> => {
   try {
     await AsyncStorage.removeItem(key);
+    console.log(`🗑️ Removed key: ${key}`);
   } catch (e) {
     console.error(`Error removing key ${key}:`, e);
     throw e;
@@ -47,7 +49,7 @@ export const retriveData = async (key: string): Promise<string | null> => {
 /**
  * Save complete user info to storage
  */
-const saveUserInfo = async (user: userInfo | any): Promise<void> => {
+export const saveUserInfo = async (user: userInfo | any): Promise<void> => {
   try {
     await saveData(KeyForStorage.userInfo, user);
     
@@ -60,6 +62,7 @@ const saveUserInfo = async (user: userInfo | any): Promise<void> => {
     }
     if (user.userType) {
       await saveData(KeyForStorage.userType, user.userType);
+      console.log(`💾 Saved userType from userInfo: ${user.userType}`);
     }
   } catch (e) {
     console.error("Error saving user info:", e);
@@ -70,7 +73,7 @@ const saveUserInfo = async (user: userInfo | any): Promise<void> => {
 /**
  * Retrieve complete user info from storage
  */
-const retrieveUserInfo = async (): Promise<userInfo | null> => {
+export const retrieveUserInfo = async (): Promise<userInfo | null> => {
   try {
     const value = await retriveData(KeyForStorage.userInfo);
     return value ? JSON.parse(value) : null;
@@ -90,6 +93,7 @@ const retrieveUserInfo = async (): Promise<userInfo | null> => {
 export const saveUserType = async (userType: UserTypeValue): Promise<void> => {
   try {
     await saveData(KeyForStorage.userType, userType);
+    console.log(`💾 User type saved: ${userType}`);
   } catch (e) {
     console.error("Error saving user type:", e);
     throw e;
@@ -102,6 +106,7 @@ export const saveUserType = async (userType: UserTypeValue): Promise<void> => {
 export const getUserType = async (): Promise<UserTypeValue | null> => {
   try {
     const userType = await retriveData(KeyForStorage.userType);
+    console.log(`📋 Retrieved userType from storage: ${userType}`);
     return userType as UserTypeValue | null;
   } catch (e) {
     console.error("Error retrieving user type:", e);
@@ -198,7 +203,7 @@ export const getRefreshToken = async (): Promise<string | null> => {
 /**
  * Clear all authentication data on logout
  */
-const clearAuthData = async (): Promise<void> => {
+export const clearAuthData = async (): Promise<void> => {
   try {
     await AsyncStorage.multiRemove([
       KeyForStorage.accessToken,
@@ -287,11 +292,4 @@ export const debugStorage = async (): Promise<void> => {
   } catch (e) {
     console.error("Error debugging storage:", e);
   }
-};
-
-export {
-  removeKey,
-  saveUserInfo,
-  retrieveUserInfo,
-  clearAuthData,
 };

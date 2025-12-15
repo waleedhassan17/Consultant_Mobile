@@ -27,6 +27,8 @@ import {
   submitSignInAsync,
   logout,
 } from './SignInSlice';
+// IMPORTANT: Import setCurrentUser to update app state after login
+import { setCurrentUser } from '../../components/appContainerSlice';
 import CustomInput from '../../custom-components/CustomInput';
 
 const SignIn = () => {
@@ -68,9 +70,16 @@ const SignIn = () => {
   const handleUserTypeSelect = (userType: 'consultant' | 'corporate') => {
     console.log('🔵 Tab clicked:', userType);
     console.log('🔵 Current selectedUserType before:', selectedUserType);
-    dispatch(setSelectedUserType(userType));
-    console.log('🔵 isConsultant:', userType === 'consultant');
-    console.log('🔵 isCorporate:', userType === 'corporate');
+    
+    // If same tab clicked again, deselect it (back to 'user')
+    if (selectedUserType === userType) {
+      dispatch(setSelectedUserType(null));
+      console.log('🔵 Tab deselected, will login as user');
+    } else {
+      dispatch(setSelectedUserType(userType));
+      console.log('🔵 Tab selected:', userType);
+    }
+    
     if (error) {
       dispatch(clearError());
     }
@@ -84,11 +93,6 @@ const SignIn = () => {
   }, [selectedUserType]);
 
   const validateForm = () => {
-    if (!selectedUserType) {
-      Alert.alert('Error', 'Please select whether you are a Consultant or Corporate');
-      return false;
-    }
-
     if (!email.trim()) {
       Alert.alert('Error', 'Please enter your email address');
       return false;
@@ -123,32 +127,57 @@ const SignIn = () => {
     }
 
     try {
+      // Use 'user' as default if no tab selected
+      const userTypeToUse = selectedUserType || 'user';
+      
+      console.log('========================================');
+      console.log('🔐 SIGNING IN');
+      console.log('🔹 Email:', email.trim());
+      console.log('🔹 User Type:', userTypeToUse);
+      console.log('========================================');
+      
       const result = await dispatch(submitSignInAsync({ 
         email: email.trim(), 
         password,
-        userType: selectedUserType!
+        userType: userTypeToUse
       })).unwrap();
 
+      console.log('========================================');
+      console.log('✅ LOGIN SUCCESSFUL');
+      console.log('🔹 User:', result.user?.email);
+      console.log('🔹 Type:', result.user?.userType);
+      console.log('========================================');
+
+      // CRITICAL: Update appContainerSlice with the logged-in user
+      // This triggers AppContainer to switch to the correct navigator
+      if (result.user) {
+        dispatch(setCurrentUser(result.user));
+        console.log('📱 AppContainer updated with user type:', result.user.userType);
+      }
+
+      // Determine welcome message based on user type
+      const userTypeLabel = result.user?.userType === 'consultant' 
+        ? 'Consultant' 
+        : result.user?.userType === 'corporate' 
+          ? 'Corporate User'
+          : 'User';
+
       Alert.alert(
-        'Success',
-        'Welcome back!',
+        '✅ Success',
+        `Welcome back, ${userTypeLabel}!`,
         [
           {
             text: 'Continue',
             onPress: () => {
-              try {
-                (navigation as any).navigate('Home');
-              } catch (navigationError) {
-                (navigation as any).reset({
-                  index: 0,
-                  routes: [{ name: 'Home' }],
-                });
-              }
+              // Navigation will be handled automatically by AppContainer
+              // because we updated currentUser via setCurrentUser
+              console.log('📱 Navigation will be handled by AppContainer');
             }
           }
         ]
       );
     } catch (err: any) {
+      console.log('❌ Login failed:', err);
       Alert.alert('Login Failed', err || 'Please check your credentials and try again.');
     }
   };
@@ -164,7 +193,16 @@ const SignIn = () => {
     });
   };
 
-  const isFormComplete = selectedUserType && email.trim() && password.trim();
+  // Form is complete if email and password are filled
+  const isFormComplete = email.trim().length > 0 && password.trim().length >= 6;
+
+  // Determine button text based on selection
+  const getButtonText = () => {
+    if (isLoading) return 'Signing in...';
+    if (isConsultant) return 'Sign In as Consultant';
+    if (isCorporate) return 'Sign In as Corporate';
+    return 'Sign In as User';
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -187,7 +225,13 @@ const SignIn = () => {
           <View style={styles.headerRow}>
             <View style={styles.headerContainer}>
               <Text style={styles.title}>Welcome back</Text>
-              <Text style={styles.subtitle}>Sign in as</Text>
+              <Text style={styles.subtitle}>
+                {isConsultant 
+                  ? 'Sign in as Consultant' 
+                  : isCorporate 
+                    ? 'Sign in as Corporate'
+                    : 'Select your account type or sign in as User'}
+              </Text>
             </View>
             <TouchableOpacity 
               style={styles.refreshButton}
@@ -234,6 +278,17 @@ const SignIn = () => {
                 Corporate
               </Text>
             </TouchableOpacity>
+          </View>
+          
+          {/* User type indicator */}
+          <View style={styles.userTypeIndicator}>
+            <Text style={styles.userTypeText}>
+              {isConsultant 
+                ? '👨‍⚕️ Signing in as Consultant'
+                : isCorporate 
+                  ? '🏢 Signing in as Corporate'
+                  : '👤 Signing in as User (no tab selected)'}
+            </Text>
           </View>
 
           {/* Error Display */}
@@ -294,12 +349,7 @@ const SignIn = () => {
             disabled={!isFormComplete || isLoading || refreshing}
           >
             <Text style={styles.signInButtonText}>
-              {isLoading 
-                ? 'Signing in...' 
-                : selectedUserType 
-                  ? `Sign In as ${isConsultant ? 'Consultant' : 'Corporate'}`
-                  : 'Sign In'
-              }
+              {getButtonText()}
             </Text>
           </TouchableOpacity>
 
@@ -372,7 +422,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
     borderRadius: 25,
     padding: 4,
-    marginBottom: 24,
+    marginBottom: 12,
   },
   tab: {
     flex: 1,
@@ -391,6 +441,18 @@ const styles = StyleSheet.create({
   tabTextActive: {
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  userTypeIndicator: {
+    backgroundColor: '#E3F2FD',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  userTypeText: {
+    fontSize: 13,
+    color: '#1976D2',
+    fontWeight: '500',
   },
   errorContainer: {
     backgroundColor: '#FFEBEE',

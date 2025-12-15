@@ -1,3 +1,5 @@
+// models/user.ts
+
 // Base user types
 export const UserType = {
   user: 'user',

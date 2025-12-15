@@ -1,11 +1,12 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createAppSlice } from "../../store/createAppSlice";
 import { authLogin } from "../../networks/authcalls/signin";
-import { signInSliceState, UserTypeValue, signInPayload } from "../../models/user";
+import { signInSliceState, UserTypeValue, signInPayload, AuthStatus } from "../../models/user";
 import {
   KeyForStorage,
   saveData,
   saveUserInfo,
+  saveUserType,
 } from "../../utils/storage_utils/storageUtils";
 
 const initialState: signInSliceState = {
@@ -14,7 +15,7 @@ const initialState: signInSliceState = {
   showPassword: false,
   selectedUserType: null,
   error: "",
-  status: "idle",
+  status: AuthStatus.idle,
   accessToken: "",
   user: null,
 };
@@ -37,7 +38,8 @@ export const signInSlice = createAppSlice({
         state.error = "";
       }
     }),
-    setSelectedUserType: create.reducer((state, action: PayloadAction<UserTypeValue>) => {
+    setSelectedUserType: create.reducer((state, action: PayloadAction<UserTypeValue | null>) => {
+      console.log('🔵 setSelectedUserType:', action.payload);
       state.selectedUserType = action.payload;
       // Clear error when user selects type
       if (state.error) {
@@ -54,6 +56,7 @@ export const signInSlice = createAppSlice({
       state.accessToken = action.payload;
     }),
     logout: create.reducer((state) => {
+      console.log('🚪 SignIn slice logout - resetting form');
       // Reset all state to initial values (form reset functionality)
       state.email = "";
       state.password = "";
@@ -62,7 +65,7 @@ export const signInSlice = createAppSlice({
       state.error = "";
       state.accessToken = "";
       state.user = null;
-      state.status = "idle";
+      state.status = AuthStatus.idle;
     }),
 
     submitSignInAsync: create.asyncThunk(
@@ -75,7 +78,11 @@ export const signInSlice = createAppSlice({
         password: string;
         userType: UserTypeValue
       }, { rejectWithValue }) => {
-        console.log("📤 submitSignInAsync started with:", { email, userType });
+        console.log("========================================");
+        console.log("📤 SIGN IN REQUEST");
+        console.log("========================================");
+        console.log("🔹 Email:", email);
+        console.log("🔹 Selected User Type:", userType);
         
         try {
           const payload: signInPayload = {
@@ -86,50 +93,68 @@ export const signInSlice = createAppSlice({
 
           const result = await authLogin({ signInInfo: payload });
           
-          console.log("📥 submitSignInAsync received result:", JSON.stringify(result, null, 2));
+          console.log("========================================");
+          console.log("✅ SIGN IN RESPONSE");
+          console.log("🔹 Email:", result.email);
+          console.log("🔹 User Type:", result.user?.userType);
+          console.log("🔹 Has Access Token:", !!result.accessToken);
+          console.log("========================================");
           
           return result;
         } catch (error: any) {
-          console.log("❌ submitSignInAsync caught error:", error.message);
+          console.log("========================================");
+          console.log("❌ SIGN IN ERROR");
+          console.log("🔹 Message:", error.message);
+          console.log("========================================");
           return rejectWithValue(error.message || "Sign in failed");
         }
       },
       {
         pending: (state) => {
           console.log("⏳ Sign in pending...");
-          state.status = "loading";
+          state.status = AuthStatus.loading;
           state.error = "";
         },
         fulfilled: (state, action) => {
-          console.log("✅ Sign in fulfilled with payload:", JSON.stringify(action.payload, null, 2));
+          console.log("✅ Sign in fulfilled");
           
-          state.status = "idle";
+          state.status = AuthStatus.idle;
           state.user = action.payload.user;
           state.accessToken = action.payload.accessToken || "";
           state.error = "";
           
-          // Save tokens and user info to storage
+          // Save tokens to storage
           saveData(KeyForStorage.accessToken, action.payload.accessToken);
+          console.log("💾 Access token saved");
+          
           if (action.payload.refreshToken) {
             saveData(KeyForStorage.refreshToken, action.payload.refreshToken);
-          }
-          if (action.payload.user) {
-            saveUserInfo(action.payload.user);
-            saveData(KeyForStorage.userType, action.payload.user.userType);
+            console.log("💾 Refresh token saved");
           }
           
-          console.log("💾 User data saved to storage");
-          console.log("👤 Current user:", state.user?.email, "Type:", state.user?.userType);
+          // Save user info to storage
+          if (action.payload.user) {
+            saveUserInfo(action.payload.user);
+            console.log("💾 User info saved");
+            
+            // CRITICAL: Save userType separately for persistence
+            if (action.payload.user.userType) {
+              saveUserType(action.payload.user.userType);
+              console.log("💾 User type saved:", action.payload.user.userType);
+            }
+          }
+          
+          console.log("========================================");
+          console.log("✅ SIGN IN COMPLETE");
+          console.log("👤 User:", state.user?.email);
+          console.log("👤 Type:", state.user?.userType);
+          console.log("========================================");
         },
         rejected: (state, action) => {
           console.log("❌ Sign in rejected:", action.payload || action.error.message);
           
-          state.status = "failed";
-          // Use action.payload if available (from rejectWithValue), otherwise use error.message
+          state.status = AuthStatus.failed;
           state.error = (action.payload as string) || action.error.message || "Sign in failed";
-          
-          // Note: Alert is now handled in the component for better UX
-          console.log("Error set in state:", state.error);
         },
       }
     ),
@@ -149,14 +174,13 @@ export const signInSlice = createAppSlice({
     selectUserId: (state) => state.user?.id,
     selectUserNickname: (state) => state.user?.nickname,
     // Additional selectors to match UI state
-    selectIsLoading: (state) => state.status === "loading",
-    // ✅ FIXED: Changed 'visitor' to 'consultant' and 'therapist' to 'corporate'
+    selectIsLoading: (state) => state.status === AuthStatus.loading,
     selectIsConsultant: (state) => state.selectedUserType === 'consultant',
     selectIsCorporate: (state) => state.selectedUserType === 'corporate',
+    // Form is complete when email and password are filled (userType is optional - defaults to 'user')
     selectIsFormComplete: (state) => 
-      !!state.selectedUserType && 
       state.email.trim().length > 0 && 
-      state.password.trim().length > 0,
+      state.password.trim().length >= 6,
   },
 });
 

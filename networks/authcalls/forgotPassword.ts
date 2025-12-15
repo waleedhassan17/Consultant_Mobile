@@ -29,18 +29,23 @@ interface CheckVerificationParams {
 
 /**
  * Convert object to URL-encoded form data string
+ * Uses spree_user wrapper as required by Spree/Devise
  */
-const encodeFormData = (data: any): string => {
+const encodeSpreeFormData = (data: Record<string, any>): string => {
   const params = new URLSearchParams();
   
-  const flatten = (obj: any, prefix = '') => {
+  const flatten = (obj: Record<string, any>, prefix = '') => {
     for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
         const value = obj[key];
         const fullKey = prefix ? `${prefix}[${key}]` : key;
         
-        if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+        if (value === null || value === undefined) {
+          continue;
+        } else if (typeof value === 'object' && !Array.isArray(value)) {
           flatten(value, fullKey);
+        } else if (typeof value === 'boolean') {
+          params.append(fullKey, value ? '1' : '0');
         } else {
           params.append(fullKey, String(value));
         }
@@ -56,14 +61,19 @@ const encodeFormData = (data: any): string => {
 
 /**
  * Send forgot password email
- * Endpoint: POST /en/user/password
+ * Backend Endpoint: POST /user/password
+ * 
+ * Spree/Devise expects:
+ * - Content-Type: application/x-www-form-urlencoded
+ * - Data wrapped in spree_user[email]=...
  */
 export const forgotPasswordAPI = async ({ email }: ForgotPasswordParams) => {
   try {
     console.log("📤 Sending forgot password request for:", email);
 
-    const formData = encodeFormData({
-      user: {
+    // Spree/Devise expects spree_user wrapper
+    const formData = encodeSpreeFormData({
+      spree_user: {
         email: email.trim().toLowerCase(),
       }
     });
@@ -71,9 +81,10 @@ export const forgotPasswordAPI = async ({ email }: ForgotPasswordParams) => {
     console.log("📋 Encoded form data:", formData);
 
     const response = await API.POST({
-      URL: "en/user/password",
+      URL: "user/password",
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
       },
       data: formData,
     });
@@ -101,14 +112,31 @@ export const forgotPasswordAPI = async ({ email }: ForgotPasswordParams) => {
 
     let errorMessage = "Failed to send reset email";
     
-    // Extract error message from different possible response formats
+    // Extract error message from different possible Spree response formats
     if (error.response?.data) {
       const errorData = error.response.data;
-      errorMessage = errorData.message || 
-                     errorData.error || 
-                     errorData.errors?.join(', ') ||
-                     errorData.error_description ||
-                     errorMessage;
+      
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      } else if (errorData.errors) {
+        if (Array.isArray(errorData.errors)) {
+          errorMessage = errorData.errors.join(', ');
+        } else if (typeof errorData.errors === 'object') {
+          // Spree returns errors like { email: ["not found"] }
+          const errorMessages: string[] = [];
+          for (const field in errorData.errors) {
+            const fieldErrors = errorData.errors[field];
+            if (Array.isArray(fieldErrors)) {
+              errorMessages.push(`${field}: ${fieldErrors.join(', ')}`);
+            }
+          }
+          errorMessage = errorMessages.join('; ') || errorMessage;
+        }
+      } else if (errorData.message) {
+        errorMessage = errorData.message;
+      } else if (errorData.error_description) {
+        errorMessage = errorData.error_description;
+      }
     } else if (error.message) {
       errorMessage = error.message;
     }
@@ -117,7 +145,10 @@ export const forgotPasswordAPI = async ({ email }: ForgotPasswordParams) => {
     if (error.response?.status === 404) {
       errorMessage = "Email address not found. Please check and try again.";
     } else if (error.response?.status === 422) {
-      errorMessage = "Invalid email format or email not registered. Please verify your email address.";
+      // 422 from Spree usually means validation errors
+      if (errorMessage === "Failed to send reset email") {
+        errorMessage = "Email not found or invalid. Please verify your email address.";
+      }
     } else if (error.response?.status === 429) {
       errorMessage = "Too many requests. Please try again later.";
     }
@@ -135,7 +166,11 @@ export const forgotPasswordAPI = async ({ email }: ForgotPasswordParams) => {
 
 /**
  * Reset password with token
- * Endpoint: PUT /en/user/password
+ * Backend Endpoint: PUT /user/password
+ * 
+ * Spree/Devise expects:
+ * - Content-Type: application/x-www-form-urlencoded  
+ * - Data: spree_user[reset_password_token]=...&spree_user[password]=...&spree_user[password_confirmation]=...
  */
 export const resetPasswordAPI = async ({ 
   email, 
@@ -145,8 +180,9 @@ export const resetPasswordAPI = async ({
   try {
     console.log("📤 Sending reset password request for:", email);
 
-    const formData = encodeFormData({
-      user: {
+    // Spree/Devise expects spree_user wrapper with specific field names
+    const formData = encodeSpreeFormData({
+      spree_user: {
         reset_password_token: verificationToken,
         password: newPassword,
         password_confirmation: newPassword,
@@ -156,9 +192,10 @@ export const resetPasswordAPI = async ({
     console.log("📋 Encoded form data (password hidden)");
 
     const response = await API.PUT({
-      URL: "en/user/password",
+      URL: "user/password",
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
       },
       data: formData,
     });
@@ -188,17 +225,37 @@ export const resetPasswordAPI = async ({
     
     if (error.response?.data) {
       const errorData = error.response.data;
-      errorMessage = errorData.message || 
-                     errorData.error || 
-                     errorData.errors?.join(', ') ||
-                     errorMessage;
+      
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      } else if (errorData.errors) {
+        if (Array.isArray(errorData.errors)) {
+          errorMessage = errorData.errors.join(', ');
+        } else if (typeof errorData.errors === 'object') {
+          const errorMessages: string[] = [];
+          for (const field in errorData.errors) {
+            const fieldErrors = errorData.errors[field];
+            if (Array.isArray(fieldErrors)) {
+              // Make error messages more user-friendly
+              const friendlyField = field === 'reset_password_token' ? 'Reset token' : field;
+              errorMessages.push(`${friendlyField}: ${fieldErrors.join(', ')}`);
+            }
+          }
+          errorMessage = errorMessages.join('; ') || errorMessage;
+        }
+      } else if (errorData.message) {
+        errorMessage = errorData.message;
+      }
     } else if (error.message) {
       errorMessage = error.message;
     }
 
     // Check for specific error cases
     if (error.response?.status === 422) {
-      errorMessage = "Invalid or expired reset token. Please request a new password reset.";
+      // Usually means invalid or expired token
+      if (errorMessage.toLowerCase().includes('token') || errorMessage === "Failed to reset password") {
+        errorMessage = "Invalid or expired reset token. Please request a new password reset.";
+      }
     } else if (error.response?.status === 404) {
       errorMessage = "Reset token not found. Please request a new password reset.";
     }
@@ -216,8 +273,8 @@ export const resetPasswordAPI = async ({
 
 /**
  * Resend verification email
- * Endpoint: POST /en/user/confirmation (for email verification)
- * Endpoint: POST /en/user/password (for password reset)
+ * Backend Endpoint for email verification: POST /user/confirmation
+ * Backend Endpoint for password reset: POST /user/password
  */
 export const resendVerificationEmailAPI = async ({ 
   email, 
@@ -228,27 +285,31 @@ export const resendVerificationEmailAPI = async ({
     console.log("📤 Resending verification email:", { email, type, userType });
 
     let response;
-    const formData = encodeFormData({
-      user: {
+    
+    // Spree/Devise expects spree_user wrapper
+    const formData = encodeSpreeFormData({
+      spree_user: {
         email: email.trim().toLowerCase(),
       }
     });
 
     if (type === "password_reset") {
-      // For password reset, use the forgot password endpoint
+      // For password reset, use the password endpoint
       response = await API.POST({
-        URL: "en/user/password",
+        URL: "user/password",
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
         },
         data: formData,
       });
     } else {
       // For email verification, use the confirmation endpoint
       response = await API.POST({
-        URL: "en/user/confirmation",
+        URL: "user/confirmation",
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
         },
         data: formData,
       });
@@ -279,17 +340,38 @@ export const resendVerificationEmailAPI = async ({
     
     if (error.response?.data) {
       const errorData = error.response.data;
-      errorMessage = errorData.message || 
-                     errorData.error || 
-                     errorData.errors?.join(', ') ||
-                     errorMessage;
+      
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      } else if (errorData.errors) {
+        if (Array.isArray(errorData.errors)) {
+          errorMessage = errorData.errors.join(', ');
+        } else if (typeof errorData.errors === 'object') {
+          const errorMessages: string[] = [];
+          for (const field in errorData.errors) {
+            const fieldErrors = errorData.errors[field];
+            if (Array.isArray(fieldErrors)) {
+              errorMessages.push(`${field}: ${fieldErrors.join(', ')}`);
+            }
+          }
+          errorMessage = errorMessages.join('; ') || errorMessage;
+        }
+      } else if (errorData.message) {
+        errorMessage = errorData.message;
+      }
     } else if (error.message) {
       errorMessage = error.message;
     }
 
     // Check for specific error cases
     if (error.response?.status === 422) {
-      errorMessage = "Email may already be verified or invalid. Please try signing in.";
+      // Check if already confirmed
+      if (errorMessage.toLowerCase().includes('already') || 
+          errorMessage.toLowerCase().includes('confirmed')) {
+        errorMessage = "Email is already verified. Please try signing in.";
+      } else {
+        errorMessage = "Unable to send verification email. Please check your email address.";
+      }
     } else if (error.response?.status === 404) {
       errorMessage = "Email address not found.";
     }
@@ -307,7 +389,7 @@ export const resendVerificationEmailAPI = async ({
 
 /**
  * Check verification status
- * Note: This implementation tries multiple approaches since APIs vary
+ * Note: Spree doesn't have a dedicated endpoint for this, so we try alternative approaches
  */
 export const checkVerificationStatusAPI = async ({ 
   email, 
@@ -317,38 +399,34 @@ export const checkVerificationStatusAPI = async ({
   try {
     console.log("📤 Checking verification status:", { email, type, userType });
 
-    // First, try to check verification status via a dedicated endpoint
+    // First, try to check verification status via a dedicated endpoint if available
     try {
       const response = await API.GET({
-        URL: "en/user/verification_status",
+        URL: "api/v2/storefront/account",
         headers: {
           'Content-Type': 'application/json',
-        },
-        params: {
-          email: email.trim().toLowerCase(),
-          type: type,
+          'Accept': 'application/json',
         },
       });
 
-      console.log("✅ Verification status response:", response.data);
+      console.log("✅ Account status response:", response.data);
 
-      const isVerified = response.data?.verified || 
-                         response.data?.is_verified || 
-                         response.data?.email_verified ||
-                         false;
+      const userData = response.data?.data || response.data;
+      const isVerified = userData?.attributes?.confirmed_at != null || 
+                         userData?.confirmed_at != null ||
+                         userData?.account_verified === true;
 
       return {
         success: true,
         isVerified: isVerified,
         message: isVerified ? "Email verified successfully" : "Email not yet verified",
         email: email.trim().toLowerCase(),
-        verificationToken: response.data?.verification_token || response.data?.token || null,
+        verificationToken: null,
       };
     } catch (primaryError: any) {
-      // If the dedicated endpoint doesn't exist, try alternative method
       console.log("ℹ️ Primary verification check failed, trying alternative...");
       
-      // For password reset flow, we can't really check - assume user clicked the link
+      // For password reset flow, we can't really check status without token
       if (type === "password_reset") {
         return {
           success: true,
@@ -359,18 +437,19 @@ export const checkVerificationStatusAPI = async ({
         };
       }
 
-      // For email verification, try to check by attempting resend
+      // For email verification, try to resend and check the response
       try {
-        const formData = encodeFormData({
-          user: {
+        const formData = encodeSpreeFormData({
+          spree_user: {
             email: email.trim().toLowerCase(),
           }
         });
 
         await API.POST({
-          URL: "en/user/confirmation",
+          URL: "user/confirmation",
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json',
           },
           data: formData,
         });
@@ -385,8 +464,18 @@ export const checkVerificationStatusAPI = async ({
         };
       } catch (resendError: any) {
         // If resend fails with "already confirmed" error, email is verified
-        const errorMsg = resendError.response?.data?.error || 
-                        resendError.response?.data?.message || '';
+        const errorResponse = resendError.response?.data;
+        let errorMsg = '';
+        
+        if (errorResponse?.error) {
+          errorMsg = errorResponse.error;
+        } else if (errorResponse?.errors?.email) {
+          errorMsg = Array.isArray(errorResponse.errors.email) 
+            ? errorResponse.errors.email.join(' ') 
+            : errorResponse.errors.email;
+        } else if (errorResponse?.message) {
+          errorMsg = errorResponse.message;
+        }
         
         if (errorMsg.toLowerCase().includes('already') || 
             errorMsg.toLowerCase().includes('confirmed') ||
