@@ -3,6 +3,9 @@ import type { NativeStackNavigationOptions } from "@react-navigation/native-stac
 // Import corporate-specific screens
 import CorporateHome from "../screens/corporate-home/CorporateHome";
 import HomeScreen from "../screens/home-screen/homeScreen";
+import TherapistScreen from "../screens/therapist-screen/therapist";
+import TimeSlotScreen from "../screens/timeslot-screen/timeSlot";
+import MoodTrackerScreen from "../screens/moodtracker-screen/moodTracker";
 
 export const CorporateRouteNames = {
   CorporateHome: "CorporateHome",
@@ -10,6 +13,9 @@ export const CorporateRouteNames = {
   CorporateDashboard: "CorporateDashboard",
   CorporateSettings: "CorporateSettings",
   CorporateTeam: "CorporateTeam",
+  TherapistProfile: "TherapistScreen",
+  TimeSlot: "TimeSlot",
+  MoodTracker: "MoodTracker",
 } as const;
 
 export type CorporateRouteName = typeof CorporateRouteNames[keyof typeof CorporateRouteNames];
@@ -52,6 +58,27 @@ export const CorporateRoutes: ICorporateRoute[] = [
   {
     component: HomeScreen, // Replace with actual CorporateTeam screen
     title: CorporateRouteNames.CorporateTeam,
+    options: {
+      headerShown: false,
+    },
+  },
+  {
+    component: TherapistScreen,
+    title: CorporateRouteNames.TherapistProfile,
+    options: {
+      headerShown: false,
+    },
+  },
+  {
+    component: TimeSlotScreen,
+    title: CorporateRouteNames.TimeSlot,
+    options: {
+      headerShown: false,
+    },
+  },
+  {
+    component: MoodTrackerScreen,
+    title: CorporateRouteNames.MoodTracker,
     options: {
       headerShown: false,
     },

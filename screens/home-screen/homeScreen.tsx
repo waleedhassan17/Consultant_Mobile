@@ -20,7 +20,14 @@ import TherapistCard from '../../custom-components/TherapistCard';
 import SortModal from '../../custom-components/SortMenu';
 import FilterModal, { FilterState } from '../../custom-components/FilterModal';
 
-type NavigationProp = NativeStackNavigationProp<any>;
+type RootStackParamList = {
+  Home: undefined;
+  MoodTracker: undefined;
+  TherapistProfile: { therapistId: number };
+  TimeSlot: { therapistId: number; therapistName: string };
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function HomeScreen(): JSX.Element {
   const dispatch = useAppDispatch();
@@ -101,6 +108,10 @@ export default function HomeScreen(): JSX.Element {
   const handleFilterApply = (newFilters: FilterState): void => {
     dispatch(setFilters(newFilters));
     setFilterVisible(false);
+  };
+
+  const handleMoodTrackerPress = (): void => {
+    navigation.navigate('MoodTracker');
   };
 
   // Show loading while language is being initialized
@@ -190,6 +201,34 @@ export default function HomeScreen(): JSX.Element {
           </Text>
         </View>
 
+        {/* Mood Tracker Card - NEW ADDITION */}
+        <TouchableOpacity 
+          style={[styles.moodTrackerCard, isRTL && styles.moodTrackerCardRTL]} 
+          onPress={handleMoodTrackerPress}
+          activeOpacity={0.85}
+        >
+          <View style={[styles.moodTrackerContent, isRTL && styles.moodTrackerContentRTL]}>
+            <View style={styles.moodTrackerIconContainer}>
+              <Text style={styles.moodTrackerEmoji}>😊</Text>
+            </View>
+            <View style={[styles.moodTrackerTextContainer, isRTL && styles.moodTrackerTextContainerRTL]}>
+              <Text style={[styles.moodTrackerTitle, isRTL && styles.textRTL]}>
+                {isRTL ? 'متتبع المزاج' : 'Mood Tracker'}
+              </Text>
+              <Text style={[styles.moodTrackerSubtitle, isRTL && styles.textRTL]}>
+                {isRTL ? 'سجّل مشاعرك وتتبع رحلتك' : 'Log your feelings & track your journey'}
+              </Text>
+            </View>
+          </View>
+          <View style={[styles.moodTrackerArrowContainer, isRTL && styles.moodTrackerArrowContainerRTL]}>
+            <Ionicons 
+              name={isRTL ? "chevron-back" : "chevron-forward"} 
+              size={24} 
+              color="#fff" 
+            />
+          </View>
+        </TouchableOpacity>
+
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={20} color="#999" style={[styles.searchIcon, isRTL && { marginLeft: 10, marginRight: 0 }]} />
@@ -203,30 +242,30 @@ export default function HomeScreen(): JSX.Element {
         </View>
 
         {/* Filter and Sort Buttons */}
-<View style={[styles.filterContainer, isRTL && styles.filterContainerRTL]}>
-  <TouchableOpacity 
-    style={[styles.filterButton, filterActive && styles.filterButtonActive]}
-    onPress={handleFilterToggle}
-  >
-    <Ionicons name="options" size={16} color={filterActive ? "#fff" : "#60a899"} />
-    <Text style={[styles.filterText, filterActive && styles.filterTextActive]}>
-      {t('home.filters')}
-    </Text>
-    {filterActive && (
-      <View style={styles.activeFilterBadge}>
-        <Text style={styles.activeFilterBadgeText}>●</Text>
-      </View>
-    )}
-  </TouchableOpacity>
-  
-  <TouchableOpacity 
-    style={styles.sortButton}
-    onPress={() => setSortVisible(true)}
-  >
-    <Text style={styles.sortText}>{t('home.sortBy')}</Text>
-    <Ionicons name="chevron-down" size={16} color="#60a899" />
-  </TouchableOpacity>
-</View>
+        <View style={[styles.filterContainer, isRTL && styles.filterContainerRTL]}>
+          <TouchableOpacity 
+            style={[styles.filterButton, filterActive && styles.filterButtonActive]}
+            onPress={handleFilterToggle}
+          >
+            <Ionicons name="options" size={16} color={filterActive ? "#fff" : "#60a899"} />
+            <Text style={[styles.filterText, filterActive && styles.filterTextActive]}>
+              {t('home.filters')}
+            </Text>
+            {filterActive && (
+              <View style={styles.activeFilterBadge}>
+                <Text style={styles.activeFilterBadgeText}>●</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.sortButton}
+            onPress={() => setSortVisible(true)}
+          >
+            <Text style={styles.sortText}>{t('home.sortBy')}</Text>
+            <Ionicons name="chevron-down" size={16} color="#60a899" />
+          </TouchableOpacity>
+        </View>
 
         {/* Error Message */}
         {error && (
@@ -406,7 +445,7 @@ const styles = StyleSheet.create({
   },
   backButton: {},
   titleSection: {
-    marginBottom: 25,
+    marginBottom: 20,
   },
   mainTitle: {
     fontSize: 28,
@@ -425,6 +464,74 @@ const styles = StyleSheet.create({
   },
   subtitleItalic: {
     fontStyle: 'italic',
+  },
+  // Mood Tracker Card Styles - NEW
+  moodTrackerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#60a899',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: '#60a899',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  moodTrackerCardRTL: {
+    flexDirection: 'row-reverse',
+  },
+  moodTrackerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  moodTrackerContentRTL: {
+    flexDirection: 'row-reverse',
+  },
+  moodTrackerIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  moodTrackerEmoji: {
+    fontSize: 28,
+  },
+  moodTrackerTextContainer: {
+    flex: 1,
+  },
+  moodTrackerTextContainerRTL: {
+    alignItems: 'flex-end',
+    marginRight: 14,
+    marginLeft: 0,
+  },
+  moodTrackerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  moodTrackerSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.85)',
+  },
+  moodTrackerArrowContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  moodTrackerArrowContainerRTL: {
+    marginRight: 10,
+    marginLeft: 0,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -556,7 +663,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     writingDirection: 'rtl',
   },
-   filterButtonActive: {
+  filterButtonActive: {
     backgroundColor: '#60a899',
     borderColor: '#60a899',
   },

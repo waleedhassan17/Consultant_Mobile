@@ -3,6 +3,7 @@ import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import { Image, View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Linking } from "react-native";
 import * as Progress from "react-native-progress";
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppSelector, useAppDispatch } from "../../hooks/useReduxHooks";
 import {
   selectTherapistData,
@@ -30,10 +31,17 @@ type TherapistScreenRouteProp = RouteProp<{
   TherapistProfile: { therapistId: number } 
 }, 'TherapistProfile'>;
 
+// Navigation params type for navigating to other screens
+type RootStackParamList = {
+  TimeSlot: { therapistId: number; therapistName: string };
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
 export default function TherapistScreen(): React.ReactElement {
   const dispatch = useAppDispatch();
   const route = useRoute<TherapistScreenRouteProp>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp>();
   const language = useAppSelector(selectLanguage);
   
   const therapistId = route.params?.therapistId || 1;
@@ -99,6 +107,10 @@ export default function TherapistScreen(): React.ReactElement {
 
   const handleSelectTimeSlot = () => {
     console.log('Navigate to time slot selection');
+    navigation.navigate('TimeSlot', {
+      therapistId: therapistId,
+      therapistName: therapistData?.name || 'Therapist',
+    });
   };
 
   if (isLoading && !refreshing && !therapistData) {

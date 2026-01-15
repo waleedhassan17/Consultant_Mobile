@@ -50,6 +50,10 @@ export const appContainerSlice = createAppSlice({
 
     setCurrentUser: create.reducer((state, action: { payload: userInfo | null }) => {
       state.currentUser = action.payload;
+      // Ensure app is ready when user is set (important for post-login navigation)
+      if (action.payload) {
+        state.isAppReady = true;
+      }
       console.log('👤 Current user set:', action.payload?.email, 'Type:', action.payload?.userType);
     }),
 

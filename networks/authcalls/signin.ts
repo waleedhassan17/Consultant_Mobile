@@ -3,12 +3,7 @@ import { NotificationService } from "../../notifications/notificationHandler";
 import { API } from "../network/network";
 import { saveUserType, getUserType } from "../../utils/storage_utils/storageUtils";
 
-/**
- * Parse user type from backend response
- * The backend uses spree_roles and spree_role_users tables
- * 
- * FIXED: More lenient detection that doesn't cause false positives
- */
+
 const parseUserTypeFromResponse = (data: any): { userType: UserTypeValue; detectionMethod: string; hasRoleData: boolean } => {
   console.log('🔍 Parsing user type from response...');
   

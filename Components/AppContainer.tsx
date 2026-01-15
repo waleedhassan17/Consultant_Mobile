@@ -37,16 +37,7 @@ import { UserType } from "../models/user";
 const Black = "#000000";
 const Primary = "#17A2B8";
 
-/**
- * Main App Container Component
- * Handles authentication state and navigation routing based on user type
- * 
- * Routing Logic:
- * - Not authenticated → SignIn screen
- * - Authenticated as 'user' → HomeScreen (BaseNavigator)
- * - Authenticated as 'consultant' → ConsultantNavigator
- * - Authenticated as 'corporate' → CorporateNavigator
- */
+
 export const AppContainer: React.FC = () => {
   const currentUser = useAppSelector(selectCurrentUser);
   const status = useAppSelector(selectStatus);
@@ -120,24 +111,25 @@ export const AppContainer: React.FC = () => {
     // Not authenticated - show Base navigator with SignIn
     if (!isAuthenticated || !currentUser) {
       console.log('📱 Rendering: BaseNavigator (SignIn) - Not authenticated');
-      return <BaseNavigator initialRouteName={BaseRouteNames.SignIn} />;
+      return <BaseNavigator key="base-unauthenticated" initialRouteName={BaseRouteNames.SignIn} />;
     }
 
     // Authenticated - route based on user type
+    // Using unique keys to force remount when switching between navigators
     switch (userType) {
       case UserType.consultant:
         console.log('📱 Rendering: ConsultantNavigator - User is Consultant');
-        return <ConsultantNavigator initialRouteName={ConsultantRouteNames.ConsultantHome} />;
+        return <ConsultantNavigator key="consultant-authenticated" initialRouteName={ConsultantRouteNames.ConsultantHome} />;
       
       case UserType.corporate:
         console.log('📱 Rendering: CorporateNavigator - User is Corporate');
-        return <CorporateNavigator initialRouteName={CorporateRouteNames.CorporateHome} />;
+        return <CorporateNavigator key="corporate-authenticated" initialRouteName={CorporateRouteNames.CorporateHome} />;
       
       case UserType.user:
       default:
         // Users go to Home screen (HomeScreen component)
         console.log('📱 Rendering: BaseNavigator (Home) - User is regular User');
-        return <BaseNavigator initialRouteName={BaseRouteNames.Home} />;
+        return <BaseNavigator key="base-authenticated-home" initialRouteName={BaseRouteNames.Home} />;
     }
   };
 

@@ -9,7 +9,8 @@ import { appContainerSlice } from "../components/appContainerSlice";
 import { emailVerificationSlice } from "../screens/email-verification/emailVerificationSlice";
 import { forgotPasswordSlice } from "../screens/forgot-password/forgotPasswordSlice";
 import { resetPasswordSlice } from "../screens/reset-password/resetPasswordSlice";
-
+import { timeSlotSlice } from "../screens/timeslot-screen/timeSlotSlice";
+import moodTrackerReducer from "../screens/moodtracker-screen/moodTrackerSlice";
 
 export const store = configureStore({
   reducer: {
@@ -23,6 +24,8 @@ export const store = configureStore({
     emailVerification: emailVerificationSlice.reducer,
     forgotPassword: forgotPasswordSlice.reducer,
     resetPassword: resetPasswordSlice.reducer,
+    timeSlot: timeSlotSlice.reducer,
+    moodTracker: moodTrackerReducer,
   },
 });
 

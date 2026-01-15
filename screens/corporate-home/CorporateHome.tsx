@@ -8,8 +8,13 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppDispatch, useAppSelector } from '../../hooks/useReduxHooks';
 import { selectCurrentUser, logout } from '../../components/appContainerSlice';
+import { CorporateRouteNames } from '../../navigations-maps/Corporate';
+
+type NavigationProp = NativeStackNavigationProp<any>;
 
 /**
  * Corporate Home Screen
@@ -18,9 +23,14 @@ import { selectCurrentUser, logout } from '../../components/appContainerSlice';
 const CorporateHome: React.FC = () => {
   const dispatch = useAppDispatch();
   const currentUser = useAppSelector(selectCurrentUser);
+  const navigation = useNavigation<NavigationProp>();
 
   const handleLogout = () => {
     dispatch(logout());
+  };
+
+  const navigateToMoodTracker = () => {
+    navigation.navigate(CorporateRouteNames.MoodTracker);
   };
 
   return (
@@ -86,6 +96,10 @@ const CorporateHome: React.FC = () => {
         {/* Quick Actions */}
         <View style={styles.actionsContainer}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <TouchableOpacity style={styles.actionButton} onPress={navigateToMoodTracker}>
+            <Ionicons name="happy-outline" size={24} color="#17A2B8" />
+            <Text style={styles.actionText}>Mood Tracker</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton}>
             <Ionicons name="search-outline" size={24} color="#17A2B8" />
             <Text style={styles.actionText}>Find Consultants</Text>

@@ -8,7 +8,8 @@ import TherapistScreen from "../screens/therapist-screen/therapist"// Import you
 import ForgotPassword from "../screens/forgot-password/forgotPassword";
 import ResetPassword from "../screens/reset-password/resetPassword";
 import EmailVerification from "../screens/email-verification/emailVerification";
-
+import TimeSlotScreen from "../screens/timeslot-screen/timeSlot";
+import MoodTrackerScreen from "../screens/moodtracker-screen/moodTracker";
 
 export const BaseRouteNames = {
   SignIn: "SignIn",
@@ -19,6 +20,8 @@ export const BaseRouteNames = {
   ForgotPassword: "ForgotPassword",
   ResetPassword: "ResetPassword",
   EmailVerification: "EmailVerification",
+  TimeSlot: "TimeSlot",
+  MoodTracker: "MoodTracker",
 } as const;
 
 export type BaseRouteName = typeof BaseRouteNames[keyof typeof BaseRouteNames];
@@ -75,6 +78,20 @@ export const BaseRoutes: IRoute[] = [
   {
     component: EmailVerification,
     title: BaseRouteNames.EmailVerification,
+    options: {
+      headerShown: false,
+    }
+  },
+  {
+    component: TimeSlotScreen,
+    title: BaseRouteNames.TimeSlot,
+    options: {
+      headerShown: false,
+    }
+  },
+  {
+    component: MoodTrackerScreen,
+    title: BaseRouteNames.MoodTracker,
     options: {
       headerShown: false,
     }
