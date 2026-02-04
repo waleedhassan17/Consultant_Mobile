@@ -65,55 +65,23 @@ const LogoutScreen: React.FC = () => {
           {
             text: 'OK',
             onPress: () => {
-              // Navigate to SignUp screen and reset navigation stack
-              // Try different navigation approaches based on your app structure
-              try {
-                // Option 1: Reset to SignUp directly
+              // Navigate to the root navigator and reset to SignUp
+              const parentNavigator = navigation.getParent();
+              if (parentNavigator) {
+                parentNavigator.dispatch(
+                  CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: 'SignUp' }],
+                  })
+                );
+              } else {
+                // Fallback if no parent navigator
                 navigation.dispatch(
                   CommonActions.reset({
                     index: 0,
                     routes: [{ name: 'SignUp' }],
                   })
                 );
-              } catch (error) {
-                try {
-                  // Option 2: If SignUp is nested in BaseNavigator
-                  navigation.dispatch(
-                    CommonActions.reset({
-                      index: 0,
-                      routes: [
-                        {
-                          name: 'BaseNavigator',
-                          state: {
-                            routes: [{ name: 'SignUp' }],
-                            index: 0,
-                          },
-                        },
-                      ],
-                    })
-                  );
-                } catch (error2) {
-                  try {
-                    // Option 3: Navigate to Auth stack if it exists
-                    navigation.dispatch(
-                      CommonActions.reset({
-                        index: 0,
-                        routes: [
-                          {
-                            name: 'Auth',
-                            params: {
-                              screen: 'SignUp',
-                            },
-                          },
-                        ],
-                      })
-                    );
-                  } catch (error3) {
-                    // Option 4: Fallback - simple navigate
-                    console.warn('All navigation reset attempts failed, using fallback');
-                    navigation.navigate('SignUp' as never);
-                  }
-                }
               }
             }
           }
@@ -183,6 +151,8 @@ const LogoutScreen: React.FC = () => {
     if (logoutError) {
       dispatch(clearError());
     }
+    
+    // Simply go back to the previous screen in the drawer
     navigation.goBack();
   };
 

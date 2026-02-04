@@ -1,14 +1,19 @@
 // navigations-map/Drawer.ts
-import HomeScreen from "../screens/HomeScreen/HomeScreen";
+import HomeScreen from "../screens/home-screen/homeScreen";
 import ProfileScreen from "../screens/ProfileScreen/ProfileScreen";
 import SettingsScreen from "../screens/SettingsScreen/Settings";
 import LogoutScreen from "../screens/LogoutScreen/logout";
+import TherapistScreen from "../screens/therapistProfileScreen/TherapistScreen";
 
 export const DrawerRouteNames = {
   Home: "Home",
   Profile: "Profile",
   Settings: "Settings",
-  LogoutScreen: "Logout", // Make sure this matches the route name in your CustomDrawer menuItems
+
+  // LogoutScreen: "Logout",
+  TherapistProfile:"TherapistScreen", // Make sure this matches the route name in your CustomDrawer menuItems
+
+  LogoutScreen: "LogoutScreen", // Make sure this matches the route name in your CustomDrawer menuItems
 } as const;
 
 export type DrawerRouteNamesType = typeof DrawerRouteNames[keyof typeof DrawerRouteNames];
