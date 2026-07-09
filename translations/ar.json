@@ -1,0 +1,21 @@
+{
+  "header": {
+    "appName": "شيزلونج",
+    "appTagline": "لك - لهم"
+  },
+  "home": {
+    "title": "معالجينا",
+    "subtitle": "احجز موعدك واحصل على مساعدتنا.",
+    "subtitleItalic": "(جميع الأسعار تشمل ضريبة القيمة المضافة ورسوم الخدمة)",
+    "searchPlaceholder": "اسم المعالج أو التخصص",
+    "filters": "فلاتر",
+    "sortBy": "ترتيب حسب",
+    "interests": "الاهتمامات:",
+    "nearestAppointment": "أقرب موعد:",
+    "sessions": "جلسة",
+    "reviews": "تقييم",
+    "topTherapist": "أفضل معالج",
+    "viewProfile": "عرض الملف الشخصي",
+    "bookNow": "احجز الآن"
+  }
+}
